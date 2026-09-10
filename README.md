@@ -7,9 +7,52 @@
 - **Concurrency:** six streams give **131.9 tok/s** aggregate across the 8 categories (boot 9: 98.0).
   - Peak aggregates: counting **259.9** (C5), **code 225.5** (C6), tables 215.1 (C5), math 182.7 (C6).
 - **Prefill:** 902-1,539 tok/s cold. A 93K-token prompt takes 78 s. TTFT on short prompts is 0.3-0.5 s.
-- **Context:** **300K** max context with a **1,070,168-token** KV pool (3.57x at 300K). Tools and vision are on.
+- **Context:** **300K** max context with a **1,070,168-token** KV pool (3.57x at 300K).
+- **Vision and tool calling are on:** up to 4 images per request, tool calls including parallel calls and a full round trip. 7/7 end-to-end checks pass ([below](#vision-and-tool-calling-on-in-the-serving-config)).
   - 1M max context was proven on a separate boot, with a 1,078,380-token DSpark KV pool.
 - Nothing on this page is a projection.
+
+## Vision and tool calling (on in the serving config)
+
+Both are live on boot 10 and tested end to end with `tools/vision_tools_demo.py`; the output is in [`results/boot10/vision-tools.txt`](results/boot10/vision-tools.txt). The test images are generated in the script, so each expected answer is known exactly.
+
+| test | result |
+|---|---|
+| V1: one image, three color stripes, name them left to right | PASS: "red, green, blue" (0.6 s) |
+| V2: two images in one message | PASS: first=red, second=blue (1.2 s) |
+| V3: 2x2 grid, color of the top-right square | PASS: "Green" (0.6 s) |
+| T1: tool call with arguments | PASS: `get_weather {"city": "Paris", "unit": "c"}` (1.4 s) |
+| T2: full round trip (the tool result goes back, the model answers from it) | PASS: "18°C with light rain" (2.2 s) |
+| T3: parallel calls in one turn | PASS: `get_weather` for Tokyo and Berlin (2.9 s) |
+| T4: `tool_choice` forcing a named function | PASS: `get_time {"city": "Sydney"}` (1.6 s) |
+
+How it is switched on (`launch/boot10-go.sh`):
+- `TEXT_ONLY=0`: the vision encoder loads (no `--language-model-only`). It adds about 0.22 GiB per rank.
+- `--limit-mm-per-prompt {"image":4} --mm-processor-cache-gb 1`: up to 4 images per request.
+- `PARSERS=1`: `--tool-call-parser deepseek_v41 --enable-auto-tool-choice --reasoning-parser deepseek_v41`.
+- Thinking is off by default; turn it on per request with `"chat_template_kwargs": {"thinking": true}`.
+- **Watch the defaults.** `launch/dsv41-tp4.sh` on its own is text-only with tools off (`TEXT_ONLY=1`, `PARSERS=0`). Set both as `boot10-go.sh` does.
+
+Example requests (OpenAI-compatible API; the served model name is `deepseek-v4.1-flash`):
+
+```bash
+# image (base64 data URL; up to 4 images per message)
+curl -s http://<head>:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{
+  "model": "deepseek-v4.1-flash", "max_tokens": 200,
+  "messages": [{"role": "user", "content": [
+    {"type": "text", "text": "What is in this image?"},
+    {"type": "image_url", "image_url": {"url": "data:image/png;base64,<BASE64>"}}]}]}'
+```
+
+```bash
+# tool call
+curl -s http://<head>:8000/v1/chat/completions -H 'Content-Type: application/json' -d '{
+  "model": "deepseek-v4.1-flash", "tool_choice": "auto",
+  "messages": [{"role": "user", "content": "What is the weather in Paris in celsius?"}],
+  "tools": [{"type": "function", "function": {"name": "get_weather", "description": "Get the current weather for a city",
+    "parameters": {"type": "object", "properties": {"city": {"type": "string"}, "unit": {"type": "string", "enum": ["c", "f"]}},
+    "required": ["city"]}}}]}'
+```
 
 ## Benchmark (boot 10, the serving config)
 
@@ -196,7 +239,7 @@ In boot order. Details in `docs/`.
 - **Vision and tools.**
   - Both on: up to 4 images per request, with the `deepseek_v41` tool and reasoning parsers.
   - Thinking is off by default; a request can turn it on with `"chat_template_kwargs": {"thinking": true}`.
-  - FlashInfer #4973 (vision on SM120) did not reproduce on a single test image; heavier image traffic is untested.
+  - FlashInfer #4973 (vision on SM120) did not reproduce in the 3 image tests, one of which sends two images in one message. Heavier image traffic and large photos are untested.
 - **Adaptive verification is off.** It pads speculative batches, and padded batches can hang SM120 sparse MLA (FlashInfer #5015, open).
 - **Step time in the fast state:** 63 ms on counting and 67-71 ms on code.
   - Measured parts: 88 all-reduces per step cost about 5 ms (`tools/nccl_lat.py`, stable across the four Sparks). The Engram staging still runs before each forward (2-3 ms with local rows).
@@ -211,7 +254,7 @@ In boot order. Details in `docs/`.
 | `patch/` | The exact files bind-mounted over vLLM (md5s in `patch/README.md`), plus one folder per fix with its diff and test. |
 | `build/` | Image chain: overlay1 (branch + sm121 extension), overlay3 (FlashInfer 0.7.0rc1), overlay4/5 (prebuilt kernels). |
 | `launch/` | `dsv41-tp4.sh <rank>`, `boot_dsv41.sh` (worker-first fan-out), and one `bootN-go.sh` per boot. `boot10-go.sh` is the serving config. |
-| `tools/` | Launch wrapper, pre-launch steps, boot poll, post-serve checks, bench report, `engram_local.py` (node-local Engram rows), `gpuflip.py` / `flipsum.py` (GPU slow-state probe), `nccl_lat.py` (4-node all-reduce check), `idletest.py` (per-step timing after idle vs back to back). |
+| `tools/` | Launch wrapper, pre-launch steps, boot poll, post-serve checks, bench report, `engram_local.py` (node-local Engram rows), `gpuflip.py` / `flipsum.py` (GPU slow-state probe), `nccl_lat.py` (4-node all-reduce check), `idletest.py` (per-step timing after idle vs back to back), `vision_tools_demo.py` (vision and tool-calling checks). |
 | `bench/` | Fixed prompt set v1, C1-C6 bench, long-context needle test. |
 | `docs/` | Recipe and one post-mortem per failure. |
 | `results/` | Head logs of every boot, proofs, bench output, pre-launch GPU and network checks. |

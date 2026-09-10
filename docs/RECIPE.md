@@ -73,6 +73,7 @@ Copy these seven files and the manifest `patch/mounts.txt` to `~/patches/dsv41-b
 - `launch/boot_dsv41.sh` (run on any node with SSH to the others) starts ranks 3, 2 and 1, then the head, with identical knobs.
 - `tools/launch.sh <N>` wraps it. It **stops `vllm_dsv41` on every node first, head first**, runs `/root/prelaunch-<N>.sh` if present, then runs `launch/boot<N>-go.sh`. Stopping everything first matters: a new worker that starts while an old head is still listening on the same port joins that head's rendezvous and hangs the new boot.
 - The serving configuration is `launch/boot10-go.sh` (`PATCH_NAME=dsv41-boot10`, `ENGRAM_LOCAL=1`).
+- **Vision and tool calling:** `dsv41-tp4.sh` defaults to text-only with tools off (`TEXT_ONLY=1`, `PARSERS=0`). `boot10-go.sh` sets `TEXT_ONLY=0 PARSERS=1` plus `--limit-mm-per-prompt {"image":4} --mm-processor-cache-gb 1`, and that is what turns both on. `tools/vision_tools_demo.py` checks them end to end: 3 image tests, 4 tool-calling tests.
 - **Node-local Engram rows (boot 10).** Before that boot, run `tools/engram_local.py` once on each worker, reading from the NFS mount and writing to `/var/tmp/engram-local/DeepSeek-V4.1-Flash`.
   - Pass the rank's row ranges, taken from the boot log line `Engram DISK mode: layer L rows [start, end)`. Example for rank 1: `1:96000564:192001740 14:96003054:192007016`.
   - Each worker needs about 48 GB of local disk. The script verifies random rows against the source.

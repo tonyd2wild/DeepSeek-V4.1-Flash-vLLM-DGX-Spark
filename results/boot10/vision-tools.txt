@@ -1,0 +1,9 @@
+V1 stripes: PASS | answer='red, green, blue' | prompt_tokens=227 (0.6s)
+V2 two images: PASS | answer='Based on the images provided:\n\n*   The first image is a solid **red** color.\n*   The second image is a solid **blue** color.\n\nfirst=red, second=blue' | prompt_tokens=403 (1.2s)
+V3 grid: PASS | answer='Green' | prompt_tokens=213 (0.6s)
+T1 tool call: PASS | finish=tool_calls calls=[('get_weather', {'city': 'Paris', 'unit': 'c'})] (1.4s)
+T2 round trip: PASS | answer="Right now in Paris it's **18°C** with **light rain**. You might want an umbrella if you're heading out! ☔" (2.2s)
+T3 parallel calls: PASS | calls=[('get_weather', {'city': 'Tokyo', 'unit': 'c'}), ('get_weather', {'city': 'Berlin', 'unit': 'c'})] (2.9s)
+T4 forced tool_choice: PASS | calls=[('get_time', {'city': 'Sydney'})] (1.6s)
+summary: 7/7 PASS
+head: Up 4 hours
