@@ -1,4 +1,6 @@
 FROM vllm/vllm-openai:nightly-8a728663c1c3eeace834a95f5654fa653cc1998c
-# Overlay: vllm-project/vllm branch dsv41-feat python tree + _C_stable_libtorch rebuilt for sm121 (see build/build_stable_ext.sh)
+# Overlay: vllm-project/vllm branch dsv41-feat python tree AT COMMIT e47aa780bccf59f59dfa2cbb18e17a10b4fe69ba (the branch was
+# force-pushed on 2026-09-11; the patches in patch/ target this tree, see docs/RECIPE.md "Pin the branch commit") +
+# _C_stable_libtorch rebuilt for sm121 (see build/build_stable_ext.sh). build/fetch_vllm_branch.sh checks out that commit.
 COPY vllm/ /usr/local/lib/python3.12/dist-packages/vllm/
 RUN find /usr/local/lib/python3.12/dist-packages/vllm -name "__pycache__" -type d -prune -exec rm -rf {} + && python3 -c "import vllm; print(vllm.__version__)"

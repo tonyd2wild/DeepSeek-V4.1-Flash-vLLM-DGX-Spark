@@ -245,6 +245,7 @@ In boot order. Details in `docs/`.
   - Measured parts: 88 all-reduces per step cost about 5 ms (`tools/nccl_lat.py`, stable across the four Sparks). The Engram staging still runs before each forward (2-3 ms with local rows).
   - The rest is the MoE and attention kernels, the next lever.
 - **1M long context after the top-k fix.** The top-k fix is validated on GB10 at row widths up to 300,000. A 1M-token request has not been re-run on the fixed stack.
+- **The vLLM branch moved under the patches.** `dsv41-feat` was force-pushed on 2026-09-11 after this image was built. The patches target commit `e47aa780b`; on a later branch head the engine boots cleanly and emits one repeated garbage token (DSpark accepts nothing). Build from the pinned commit (`build/fetch_vllm_branch.sh`, [docs/RECIPE.md](docs/RECIPE.md) step 3).
 - **Host hardening** (system settings, not applied here): see [docs/RECIPE.md](docs/RECIPE.md) step 7.
 
 ## Repo layout
