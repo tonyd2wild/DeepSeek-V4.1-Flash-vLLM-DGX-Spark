@@ -62,10 +62,12 @@ replaces). Building the overlay from the branch head after that date and mountin
 without a single error, passes profiling and graph capture, and emits one repeated garbage token from the first position, with
 DSpark accepting nothing. It is not the checkpoint and not the node count; it is the tree under the patches.
 
-Use the pinned commit. GitHub still serves force-pushed-away commits by full sha:
+The branch itself is gone: it was merged into main (vllm-project/vllm#56214) and deleted at 09:11 UTC on 2026-09-11, so
+`git clone --branch dsv41-feat` now fails. GitHub still serves the commit by full sha (branch `dsv41-optimized` also pointed at
+it on 2026-09-12):
 
 ```
-git clone --branch dsv41-feat --single-branch https://github.com/vllm-project/vllm.git
+git clone https://github.com/vllm-project/vllm.git
 cd vllm && git fetch origin e47aa780bccf59f59dfa2cbb18e17a10b4fe69ba && git checkout e47aa780bccf59f59dfa2cbb18e17a10b4fe69ba
 ```
 
