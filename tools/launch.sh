@@ -17,7 +17,9 @@ for p in spark4:tonyspark4@192.168.192.4 asusi:$A bluey:tonyspark1@192.168.192.1
   fi
 done
 chmod 644 $P/*.log 2>/dev/null
-if [ -f /root/prelaunch-$N.sh ]; then bash /root/prelaunch-$N.sh || { echo "prelaunch-$N failed: NOT launching"; exit 1; }; fi
+# PRELAUNCH overrides the pre-launch step (e.g. /root/prelaunch-quick.sh for a relaunch); PRELAUNCH=none skips it.
+PRE=${PRELAUNCH:-/root/prelaunch-$N.sh}
+if [ "$PRE" != none ] && [ -f "$PRE" ]; then bash "$PRE" || { echo "prelaunch ($PRE) failed: NOT launching"; exit 1; }; fi
 $J $A "nohup bash /tmp/boot$N-go.sh > /tmp/boot$N-go.log 2>&1 < /dev/null & echo launched boot$N pid \$!"
 for i in $(seq 1 48); do sleep 5; $J $A "grep -q 'boot_dsv41 exit=' /tmp/boot$N-go.log" && break; done
 echo "--- /tmp/boot$N-go.log"; $J $A "tail -14 /tmp/boot$N-go.log" | cut -c1-200

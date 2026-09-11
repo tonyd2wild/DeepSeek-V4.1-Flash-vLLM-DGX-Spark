@@ -228,7 +228,7 @@ In boot order. Details in `docs/`.
 | 7 | + DSpark k=5 at 1M max context | **Served at 1M.** KV 1,078,380. DSpark eager 19.5-22.1 tok/s. A 32K request then killed it in `persistent_topk` (fix 7). |
 | 8 | + CUDA graphs, Engram staged before the forward, top-k fix, gmu 0.78, 300K | Served. Count check 41.5 tok/s, code 32.9 (two GPUs clock-latched, found later). |
 | 9 | + tools, vision, gmu 0.80; Reddie and Asusi power-cycled to clear a GPU clock latch | Served. KV 1,032,963 (3.44x at 300K). Count-to-100 60.8 tok/s, code 57.1, count-to-300 68.2. Tool call and image OK. |
-| 10 | + node-local Engram rows on the 3 workers (one change); GPU clocks locked by the owner before launch | **Serving.** KV 1,070,168 (3.57x at 300K). Count-to-100 84.9 tok/s, code 65.3 (end to end). Bench: C1 code 73.8, C6 aggregate 131.9. Tool call and image OK. |
+| 10 | + node-local Engram rows on the 3 workers (one change); GPU clocks locked by the owner before launch | **Serving.** KV 1,070,168 (3.57x at 300K). Count-to-100 84.9 tok/s, code 65.3 (end to end). Bench: C1 code 73.8, C6 aggregate 131.9. Tool call and image OK. Restored 2026-09-11 after a worker was powered off by accident (`tools/restore_boot10.sh`, 11 min to serving). Same config; KV 1,250,201 this time (graph capture took 1.29 GiB vs 1.99). Warm: count 90-92 tok/s, code 72-73. |
 
 ## Known limits and next steps
 
