@@ -22,7 +22,7 @@ Weights that stay in GPU memory per Spark (Engram tables on disk as in boot 10).
 |---|---|---|
 | release, TP4 (boot 10, DSpark + vision) | 73.2 | 81.6 |
 | release, TP3 | 97.1 (does not fit) | |
-| EXL3, TP4 | 61.5 (+6.2 on the two ranks with the wider expert slice) | next lane |
+| EXL3, TP4, DSpark + vision (exl3tp4b) | 61.5 (+6.2 on the two ranks with the wider expert slice) | 56.6 on the two narrow-slice ranks, 68.9 on the two wide-slice ranks |
 | EXL3, TP3, DSpark + vision (try 11) | 81.5 | 84.2 |
 | EXL3, TP3, vision, no DSpark (tries 9, 10) | | 80.3 |
 | EXL3, TP3, text-only, no DSpark (tries 6, 7) | 78.0 | 79.9 |
@@ -67,7 +67,7 @@ The serving config is try 11: CUDA graphs, DSpark k=5, vision, 300K context, gmu
 | exl3tp3a10 (14:45 ET: try 9 plus gmu 0.80, boot 10's value; patch set tp3e) | **up at 14:57 ET**; smokes pass | **KV pool 1,995,725 tokens** (6.65 requests at 300K; 7.6 to 8.0 GiB of KV per Spark) against 417,333 at gmu 0.75 and boot 10's 1,070,168 on 4 Sparks. Load times and 80.3 GiB per Spark as in try 9, so tp3e's relaxed MoE check is a no-op for the main model as intended. 11.9 to 13.1 GiB free per Spark serving (8 GiB at the lowest, during the final graph pass); a serving-phase guard (`exl3/try4/servguard.sh`) stops all three below 4 GiB | try 11: DSpark k=5 |
 | exl3tp3a11 (15:09 ET: try 10 plus DSpark k=5, patch set tp3e) | **up at 15:22 ET**: the drafter loads past try 8's check on all three ranks | model plus drafter 84.2 GiB per Spark (the drafter costs 3.9 GiB per rank; it loads in 29 s locally, 87 to 91 s over NFS). Graph capture 15 piecewise + 8 full sizes, at most 1.7 GiB. **KV pool 678,950 tokens** (2.26 requests at 300K; 2.62 GiB of KV on Bluey): DSpark costs about two thirds of try 10's context. 8 to 13 GiB free per Spark at startup | **serving config**; benchmark below |
 
-Two deaths = stop and regroup (this repo's rule). After boot #2 the call was to keep going on TP3; every try since runs with a memory guard that stops all three containers before any Spark runs out. TP4 EXL3 (61.5 GiB per Spark, KV pinned) is the next lane.
+Two deaths = stop and regroup (this repo's rule). After boot #2 the call was to keep going on TP3; every try since runs with a memory guard that stops all three containers before any Spark runs out. The TP4 EXL3 lane (exl3tp4b, four Sparks, no KV pin) is further down.
 
 ### Memory while serving at gmu 0.80
 
@@ -160,6 +160,38 @@ Try 10 plus DSpark. KV pool 678,950 tokens (2.26 requests at 300K). Vision and t
 | C6 | 152.9 | 29.6 | 0.50 | 1.44x | 131.9 |
 
 **Ahead of boot 10 (four Sparks, release checkpoint) at every concurrency level.** Cold prefill: 1,119 tok/s at 2,950, 1,186 tok/s at 11,592, 1,188 tok/s at 46,810, 1,199 tok/s at 93,335 (prompt tokens); boot 10 does 1,194 tok/s on the same 93,335-token prompt. The counting ceiling row, for reference only: 77.0 tok/s per stream at C1, 308.0 tok/s aggregate at C6. Boot 10 keeps more context (1,070,168 tokens against 678,950). Full tables in `results/exl3tp3a11/report.md`; DSpark's effect in `results/exl3tp3a11/compare-a10-a11.md`.
+
+## TP4 lane: four Sparks on EXL3 (the context lane)
+
+`exl3tp4b` is boot 10's serving config (four Sparks, head Reddie, CUDA graphs, DSpark k=5, vision, 300K per request, gmu 0.80) on the EXL3 checkpoint (`DeepSeek-V4.1-Flash-EXL3-Pollard`, 64 heads): image `vllm-dsv41:exl3a`, patch set tp3e (its TP3-only parts do nothing at TP4), boot 10's node-local Engram rows, no KV pin. Scripts are in `exl3/tp4/` (`prep_launch_tp4.sh` launches from Asusi). Launched 2026-09-11 15:45 ET, serving at 15:54.
+
+**KV pool 3,304,863 tokens (11.02 requests at 300K)**: 3.1x boot 10's 1,070,168 and 4.9x the TP3 lane's 678,950.
+
+EXL3 splits the 2304-wide experts 512/640/640/512 at TP4, so the ranks are not equal:
+
+| rank | Spark | expert slice | model memory, GiB | KV memory offered, GiB | free while serving, GiB |
+|---|---|---|---|---|---|
+| 0 (head) | Reddie | 512 | 56.6 | 28.0 | 19 to 23 |
+| 1 | Spark4 | 640 | 68.9 | 15.6 | 7 to 12 |
+| 2 | Asusi | 640 | 68.9 | 15.5 | 6 to 11 |
+| 3 | Bluey | 512 | 56.6 | 28.4 | 19 to 24 |
+
+vLLM sizes the pool from the tightest rank, so the two narrow ranks keep about 12 GiB unused. A KV pin (bot-lab-21 used 12 GiB) would not change how the pool is sized; it would trade some context for headroom on the two wide ranks.
+
+Throughput across the 8 prompt categories, same bench as boot 10:
+
+| C | aggregate tok/s | per-stream tok/s | mean TTFT (s) | vs boot 10 | TP3 lane aggregate tok/s |
+|---|---|---|---|---|---|
+| C1 | 41.6 | 46.4 | 0.37 | 1.10x | 46.0 |
+| C2 | 62.2 | 37.5 | 0.77 | 0.97x | 73.4 |
+| C3 | 101.1 | 38.2 | 0.44 | 1.29x | 100.1 |
+| C4 | 106.7 | 30.9 | 0.51 | 1.24x | 118.4 |
+| C5 | 129.2 | 30.4 | 0.56 | 1.13x | 134.4 |
+| C6 | 141.2 | 27.7 | 0.58 | 1.07x | 152.9 |
+
+Ahead of boot 10 at 5 of 6 concurrency levels and behind the TP3 lane on the same checkpoint at every level: on EXL3 the fourth Spark buys context rather than speed. Vision and tool checks: 7/7 PASS. Cold prefill: 1,326 tok/s at 2,950, 1,402 tok/s at 11,592, 957 tok/s at 46,810, 1,026 tok/s at 93,335 (prompt tokens); boot 10 does 1,194 tok/s on the same 93,335-token prompt. Full tables in `results/exl3tp4b/report.md`, with comparisons against boot 10 and the TP3 lane.
+
+**Bench conditions.** The two wide ranks served with 7 to 12 GiB free. When the cold-prefill sweep began, their free memory stepped down about 3.7 GiB (the same long-context step as on TP3) while Engram row reads filled the page cache and pushed MemFree on Asusi down to 1.5 GiB. One-shot cache drops, then `exl3/tp4/memfree_flusher.sh` (drops clean cache when MemFree falls under 4 GiB), kept both ranks out of that zone; the 32K and 64K prefill runs overlapped those drops. `flusher2.sh`'s test (Cached minus Mapped minus Shmem) goes negative on these boxes because Mapped already counts the shmem mappings, so it never fired during serving; the next boots should use `memfree_flusher.sh` instead.
 
 ## Credits
 

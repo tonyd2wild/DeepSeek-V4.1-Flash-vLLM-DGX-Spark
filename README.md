@@ -33,6 +33,31 @@ Serving config (exl3tp3a11): CUDA graphs, DSpark k=5, vision, 300K context, gmu 
 | cold prefill, 93,335-token prompt | 1,199 tok/s | 1,155 tok/s | 1,194 tok/s |
 | vision and tool checks | 7/7 pass | 7/7 pass | 7/7 pass |
 
+## Four Sparks on EXL3: the context lane
+
+Boot 10's serving config (four Sparks, CUDA graphs, DSpark k=5, vision, 300K per request, gmu 0.80) on the same EXL3 3.5 bpw checkpoint as the TP3 lane. The smaller experts leave far more memory for the KV cache:
+
+| | TP4 EXL3 (exl3tp4b) | boot 10, release, 4 Sparks | TP3 EXL3, 3 Sparks |
+|---|---|---|---|
+| KV pool, tokens | **3,304,863** | 1,070,168 | 678,950 |
+| full 300K-token requests at once | **11.02** | 3.57 | 2.26 |
+| model memory per Spark, GiB | 56.6 / 68.9 (narrow / wide expert slice) | 81.6 | 84.2 |
+| cold prefill, 93,335-token prompt | 1,026 tok/s | 1,194 tok/s | 1,199 tok/s |
+| vision and tool checks | 7/7 pass | 7/7 pass | 7/7 pass |
+
+EXL3 splits the 2304-wide experts 512/640/640/512 across four ranks, so two Sparks carry 12 GiB more than the other two, and those two set the pool (15.5 GiB of KV each). Throughput across the 8 prompt categories, same bench as boot 10:
+
+| C | TP4 EXL3 aggregate tok/s | per-stream tok/s | mean TTFT (s) | boot 10 aggregate tok/s | TP3 EXL3 aggregate tok/s |
+|---|---|---|---|---|---|
+| C1 | 41.6 | 46.4 | 0.37 | 38.0 | 46.0 |
+| C2 | 62.2 | 37.5 | 0.77 | 64.3 | 73.4 |
+| C3 | 101.1 | 38.2 | 0.44 | 78.7 | 100.1 |
+| C4 | 106.7 | 30.9 | 0.51 | 85.7 | 118.4 |
+| C5 | 129.2 | 30.4 | 0.56 | 114.2 | 134.4 |
+| C6 | 141.2 | 27.7 | 0.58 | 131.9 | 152.9 |
+
+Launch and guard scripts are in `exl3/tp4/`; the full write-up is in [docs/EXL3-TP3.md](docs/EXL3-TP3.md).
+
 ## Vision and tool calling (on in the serving config)
 
 Both are live on boot 10 and tested end to end with `tools/vision_tools_demo.py`; the output is in [`results/boot10/vision-tools.txt`](results/boot10/vision-tools.txt). The test images are generated in the script, so each expected answer is known exactly.
