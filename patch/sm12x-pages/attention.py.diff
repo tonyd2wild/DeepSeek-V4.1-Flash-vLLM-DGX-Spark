@@ -1,5 +1,5 @@
---- orig/models/deepseek_v4_1/attention.py	2026-09-10 03:05:48
-+++ patched/attention.py	2026-09-10 05:03:55
+--- a/vllm/models/deepseek_v4_1/attention.py
++++ b/vllm/models/deepseek_v4_1/attention.py
 @@ -453,7 +453,9 @@
              prefix=f"{prefix}.swa_cache",
              cache_config=cache_config,
