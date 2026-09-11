@@ -163,7 +163,7 @@ Try 10 plus DSpark. KV pool 678,950 tokens (2.26 requests at 300K). Vision and t
 
 ## TP4 lane: four Sparks on EXL3 (the context lane)
 
-`exl3tp4b` is boot 10's serving config (four Sparks, head Reddie, CUDA graphs, DSpark k=5, vision, 300K per request, gmu 0.80) on the EXL3 checkpoint (`DeepSeek-V4.1-Flash-EXL3-Pollard`, 64 heads): image `vllm-dsv41:exl3a`, patch set tp3e (its TP3-only parts do nothing at TP4), boot 10's node-local Engram rows, no KV pin. Scripts are in `exl3/tp4/` (`prep_launch_tp4.sh` launches from Asusi). Launched 2026-09-11 15:45 ET, serving at 15:54.
+`exl3tp4b` is boot 10's serving config (four Sparks, head Reddie, CUDA graphs, DSpark k=5, vision, 300K per request, gmu 0.80) on the EXL3 checkpoint (`DeepSeek-V4.1-Flash-EXL3-Pollard`, 64 heads): image `vllm-dsv41:exl3a`, patch set tp3e (its TP3-only parts do nothing at TP4), boot 10's node-local Engram rows, no KV pin. Scripts are in `exl3/tp4/` (`prep_launch_tp4.sh` launches from Asusi). Launched 2026-09-11 15:45 ET, serving at 15:54. It is the default serving config since 2026-09-11: `bash /root/restore_exl3tp4b.sh` on Reddie as root restores it (`exl3/tp4/restore_exl3tp4b.sh` with `postcheck_exl3tp4b.sh`), and boot 10's `restore_boot10.sh` stays as the release-checkpoint fallback.
 
 **KV pool 3,304,863 tokens (11.02 requests at 300K)**: 3.1x boot 10's 1,070,168 and 4.9x the TP3 lane's 678,950.
 

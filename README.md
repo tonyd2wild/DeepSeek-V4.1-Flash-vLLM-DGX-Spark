@@ -1,5 +1,7 @@
 # DeepSeek-V4.1-Flash on four NVIDIA DGX Sparks (vLLM, TP4, DSpark, CUDA graphs)
 
+> **Default serving config since 2026-09-11: the TP4 EXL3 context lane (`exl3tp4b`)**, the same four Sparks on the EXL3 3.5 bpw checkpoint with a 3,304,863-token KV pool. Restore it with `bash /root/restore_exl3tp4b.sh` on Reddie as root. Boot 10, documented below, is the release-checkpoint fallback: `bash /root/restore_boot10.sh`.
+
 **Status (2026-09-10): serving (boot 10).**
 - The model dropped at about 2 AM ET, and this stack started serving it at 9:17 AM ET the same day.
 - **One stream, decode tok/s** (after the first token): **code 73.8**, tables 55.4, JSON 52.1, math 50.9, reasoning 37.8, narrative 24.9, prose 24.4.
