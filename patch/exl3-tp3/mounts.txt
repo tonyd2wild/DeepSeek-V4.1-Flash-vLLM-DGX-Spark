@@ -1,0 +1,13 @@
+sparse_swa.py v1/attention/backends/mla/sparse_swa.py
+flashinfer_sparse.py models/deepseek_v4_1/nvidia/flashinfer_sparse.py
+engram.py models/deepseek_v4_1/common/engram.py
+weight_utils.py model_executor/model_loader/weight_utils.py
+model_state.py models/deepseek_v4_1/nvidia/model_state.py
+sparse_attn_indexer.py model_executor/layers/sparse_attn_indexer.py
+attention.py models/deepseek_v4_1/attention.py
+virtual_heads.py models/deepseek_v4_1/virtual_heads.py
+exl3_config.py /usr/local/lib/python3.12/dist-packages/cuda_exl3/config.py
+exl3_moe.py /usr/local/lib/python3.12/dist-packages/cuda_exl3/moe.py
+vocab_parallel_embedding.py model_executor/layers/vocab_parallel_embedding.py
+vl_model.py models/deepseek_v4_1/nvidia/vl_model.py
+dsv4_nvidia_model.py models/deepseek_v4/nvidia/model.py

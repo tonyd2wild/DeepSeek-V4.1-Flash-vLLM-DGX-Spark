@@ -1,0 +1,89 @@
+=== 17:05:40 MemFree:117.0 MemAvailable:116.9 Cached:0.7 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:05:45 MemFree:116.8 MemAvailable:116.8 Cached:0.7 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:05:50 MemFree:116.6 MemAvailable:116.5 Cached:0.7 AnonPages:0.5 Mapped:0.4 Shmem:0.0 
+=== 17:05:55 MemFree:116.1 MemAvailable:116.3 Cached:0.8 AnonPages:0.6 Mapped:0.4 Shmem:0.0 
+=== 17:06:00 MemFree:115.4 MemAvailable:115.6 Cached:0.9 AnonPages:1.3 Mapped:0.5 Shmem:0.0 
+=== 17:06:05 MemFree:115.3 MemAvailable:116.1 Cached:1.5 AnonPages:0.8 Mapped:0.5 Shmem:0.0 
+=== 17:06:10 MemFree:114.1 MemAvailable:115.0 Cached:1.6 AnonPages:1.6 Mapped:0.6 Shmem:0.0 
+=== 17:06:15 MemFree:113.4 MemAvailable:114.3 Cached:1.6 AnonPages:2.1 Mapped:0.6 Shmem:0.0 
+=== 17:06:20 MemFree:113.5 MemAvailable:114.4 Cached:1.6 AnonPages:2.1 Mapped:0.6 Shmem:0.0 
+=== 17:06:25 MemFree:113.5 MemAvailable:114.4 Cached:1.6 AnonPages:2.1 Mapped:0.6 Shmem:0.0 
+=== 17:06:30 MemFree:113.6 MemAvailable:114.5 Cached:1.6 AnonPages:2.1 Mapped:0.6 Shmem:0.0 
+=== 17:06:35 MemFree:113.6 MemAvailable:114.5 Cached:1.6 AnonPages:2.1 Mapped:0.6 Shmem:0.0 
+=== 17:06:40 MemFree:113.7 MemAvailable:114.6 Cached:1.6 AnonPages:2.1 Mapped:0.6 Shmem:0.0 
+=== 17:06:45 MemFree:109.7 MemAvailable:110.6 Cached:4.6 AnonPages:2.5 Mapped:3.7 Shmem:2.9 
+  gpu 393086, 655 MiB
+=== 17:06:50 MemFree:78.1 MemAvailable:79.1 Cached:6.4 AnonPages:2.8 Mapped:5.5 Shmem:4.7 
+  gpu 393086, 31285 MiB
+=== 17:06:55 MemFree:24.9 MemAvailable:26.5 Cached:6.9 AnonPages:3.0 Mapped:5.7 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:01 MemFree:23.1 MemAvailable:26.4 Cached:8.7 AnonPages:3.0 Mapped:6.3 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:06 MemFree:21.8 MemAvailable:26.4 Cached:10.0 AnonPages:3.0 Mapped:6.6 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:11 MemFree:19.5 MemAvailable:26.4 Cached:12.3 AnonPages:3.0 Mapped:7.3 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:16 MemFree:18.3 MemAvailable:26.3 Cached:13.4 AnonPages:3.0 Mapped:7.7 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:21 MemFree:17.0 MemAvailable:26.3 Cached:14.6 AnonPages:3.0 Mapped:8.0 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:26 MemFree:16.1 MemAvailable:26.3 Cached:15.5 AnonPages:3.0 Mapped:8.3 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:31 MemFree:14.1 MemAvailable:26.3 Cached:17.5 AnonPages:3.0 Mapped:8.9 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:36 MemFree:22.2 MemAvailable:26.3 Cached:9.5 AnonPages:3.1 Mapped:9.0 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:41 MemFree:17.4 MemAvailable:25.0 Cached:13.1 AnonPages:4.4 Mapped:11.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:46 MemFree:13.5 MemAvailable:24.2 Cached:16.2 AnonPages:5.0 Mapped:13.5 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:51 MemFree:10.4 MemAvailable:23.7 Cached:18.9 AnonPages:5.4 Mapped:15.6 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:07:56 MemFree:6.3 MemAvailable:23.1 Cached:22.3 AnonPages:6.0 Mapped:18.4 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:01 MemFree:3.0 MemAvailable:22.6 Cached:25.1 AnonPages:6.4 Mapped:20.6 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:06 MemFree:0.7 MemAvailable:22.5 Cached:27.5 AnonPages:6.7 Mapped:22.5 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:11 MemFree:1.8 MemAvailable:22.2 Cached:25.9 AnonPages:7.2 Mapped:21.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:16 MemFree:0.7 MemAvailable:21.8 Cached:26.5 AnonPages:7.6 Mapped:22.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:22 MemFree:0.7 MemAvailable:21.3 Cached:26.1 AnonPages:8.1 Mapped:21.7 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:27 MemFree:0.8 MemAvailable:20.9 Cached:25.6 AnonPages:8.5 Mapped:21.3 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:32 MemFree:0.7 MemAvailable:20.4 Cached:25.3 AnonPages:9.0 Mapped:20.9 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:37 MemFree:0.8 MemAvailable:19.9 Cached:24.6 AnonPages:9.5 Mapped:20.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:42 MemFree:0.8 MemAvailable:19.5 Cached:24.2 AnonPages:9.9 Mapped:20.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:47 MemFree:0.7 MemAvailable:19.2 Cached:24.1 AnonPages:10.2 Mapped:20.6 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:52 MemFree:0.7 MemAvailable:18.9 Cached:23.7 AnonPages:10.5 Mapped:20.3 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:08:57 MemFree:0.8 MemAvailable:18.5 Cached:23.2 AnonPages:10.9 Mapped:19.9 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:02 MemFree:0.8 MemAvailable:18.0 Cached:22.7 AnonPages:11.4 Mapped:19.6 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:07 MemFree:0.7 MemAvailable:17.6 Cached:22.4 AnonPages:11.8 Mapped:19.5 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:12 MemFree:0.7 MemAvailable:17.2 Cached:22.0 AnonPages:12.2 Mapped:19.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:17 MemFree:0.8 MemAvailable:16.8 Cached:21.6 AnonPages:12.6 Mapped:18.8 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:22 MemFree:0.6 MemAvailable:16.4 Cached:21.3 AnonPages:13.0 Mapped:18.6 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:27 MemFree:0.7 MemAvailable:16.0 Cached:20.9 AnonPages:13.3 Mapped:18.2 Shmem:4.7 
+  gpu 393086, 82739 MiB
+=== 17:09:32 MemFree:35.3 MemAvailable:34.7 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:38 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:43 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:48 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:53 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:58 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:03 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:08 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:13 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:18 MemFree:117.6 MemAvailable:117.0 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 

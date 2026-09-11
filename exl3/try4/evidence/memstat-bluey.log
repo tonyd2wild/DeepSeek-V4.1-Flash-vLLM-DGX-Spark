@@ -1,0 +1,91 @@
+=== 17:05:39 MemFree:117.1 MemAvailable:116.9 Cached:0.7 AnonPages:0.1 Mapped:0.2 Shmem:0.0 
+=== 17:05:44 MemFree:117.1 MemAvailable:117.0 Cached:0.7 AnonPages:0.1 Mapped:0.2 Shmem:0.0 
+=== 17:05:49 MemFree:116.9 MemAvailable:116.9 Cached:0.7 AnonPages:0.1 Mapped:0.2 Shmem:0.0 
+=== 17:05:54 MemFree:116.8 MemAvailable:116.9 Cached:0.7 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:05:59 MemFree:117.0 MemAvailable:116.7 Cached:0.6 AnonPages:0.4 Mapped:0.4 Shmem:0.0 
+=== 17:06:04 MemFree:116.5 MemAvailable:116.4 Cached:0.7 AnonPages:0.6 Mapped:0.4 Shmem:0.0 
+=== 17:06:09 MemFree:116.2 MemAvailable:116.3 Cached:0.9 AnonPages:0.7 Mapped:0.5 Shmem:0.0 
+=== 17:06:14 MemFree:115.6 MemAvailable:115.7 Cached:0.9 AnonPages:1.3 Mapped:0.5 Shmem:0.0 
+=== 17:06:19 MemFree:115.4 MemAvailable:116.2 Cached:1.5 AnonPages:0.7 Mapped:0.5 Shmem:0.0 
+=== 17:06:24 MemFree:114.6 MemAvailable:115.4 Cached:1.6 AnonPages:1.6 Mapped:0.6 Shmem:0.0 
+=== 17:06:29 MemFree:113.2 MemAvailable:114.0 Cached:1.6 AnonPages:2.4 Mapped:0.6 Shmem:0.0 
+=== 17:06:34 MemFree:112.8 MemAvailable:113.6 Cached:1.6 AnonPages:2.9 Mapped:0.6 Shmem:0.0 
+=== 17:06:39 MemFree:112.8 MemAvailable:113.6 Cached:1.6 AnonPages:2.9 Mapped:0.6 Shmem:0.0 
+=== 17:06:44 MemFree:109.9 MemAvailable:110.8 Cached:3.9 AnonPages:3.3 Mapped:3.1 Shmem:2.3 
+  gpu 138265, 288 MiB
+=== 17:06:49 MemFree:102.9 MemAvailable:103.9 Cached:6.4 AnonPages:3.6 Mapped:5.6 Shmem:4.7 
+  gpu 138265, 4395 MiB
+=== 17:06:54 MemFree:24.5 MemAvailable:25.6 Cached:6.6 AnonPages:3.8 Mapped:5.6 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:06:59 MemFree:22.2 MemAvailable:25.6 Cached:8.8 AnonPages:3.8 Mapped:6.3 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:04 MemFree:20.6 MemAvailable:25.6 Cached:10.5 AnonPages:3.8 Mapped:6.8 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:10 MemFree:18.8 MemAvailable:25.6 Cached:12.3 AnonPages:3.8 Mapped:7.3 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:15 MemFree:17.3 MemAvailable:25.5 Cached:13.7 AnonPages:3.9 Mapped:7.8 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:20 MemFree:16.5 MemAvailable:25.5 Cached:14.5 AnonPages:3.9 Mapped:8.0 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:25 MemFree:15.7 MemAvailable:25.5 Cached:15.3 AnonPages:3.9 Mapped:8.3 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:30 MemFree:14.0 MemAvailable:25.5 Cached:17.0 AnonPages:3.9 Mapped:8.8 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:35 MemFree:21.7 MemAvailable:25.5 Cached:9.3 AnonPages:3.9 Mapped:9.1 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:40 MemFree:20.5 MemAvailable:25.0 Cached:10.1 AnonPages:4.4 Mapped:9.0 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:45 MemFree:18.7 MemAvailable:24.5 Cached:11.3 AnonPages:4.9 Mapped:9.8 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:50 MemFree:16.5 MemAvailable:24.1 Cached:13.1 AnonPages:5.2 Mapped:11.2 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:07:55 MemFree:14.3 MemAvailable:23.8 Cached:15.0 AnonPages:5.5 Mapped:12.7 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:00 MemFree:12.1 MemAvailable:23.2 Cached:16.7 AnonPages:5.9 Mapped:14.0 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:05 MemFree:10.3 MemAvailable:23.0 Cached:18.2 AnonPages:6.2 Mapped:15.1 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:10 MemFree:7.8 MemAvailable:22.5 Cached:20.3 AnonPages:6.5 Mapped:16.8 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:15 MemFree:5.4 MemAvailable:22.2 Cached:22.3 AnonPages:6.9 Mapped:18.3 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:20 MemFree:2.9 MemAvailable:21.8 Cached:24.5 AnonPages:7.2 Mapped:20.1 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:25 MemFree:0.8 MemAvailable:21.7 Cached:26.4 AnonPages:7.6 Mapped:21.6 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:30 MemFree:0.7 MemAvailable:21.7 Cached:26.5 AnonPages:7.9 Mapped:23.1 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:36 MemFree:0.8 MemAvailable:21.3 Cached:26.1 AnonPages:8.2 Mapped:24.0 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:41 MemFree:2.2 MemAvailable:20.9 Cached:24.3 AnonPages:8.6 Mapped:22.5 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:46 MemFree:3.1 MemAvailable:20.5 Cached:22.9 AnonPages:9.0 Mapped:21.0 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:51 MemFree:2.9 MemAvailable:20.1 Cached:22.7 AnonPages:9.4 Mapped:20.5 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:08:56 MemFree:1.9 MemAvailable:19.6 Cached:23.3 AnonPages:9.9 Mapped:20.7 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:01 MemFree:2.2 MemAvailable:19.2 Cached:22.5 AnonPages:10.3 Mapped:19.6 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:06 MemFree:0.8 MemAvailable:18.8 Cached:23.6 AnonPages:10.7 Mapped:20.2 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:11 MemFree:0.8 MemAvailable:18.4 Cached:23.1 AnonPages:11.1 Mapped:20.0 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:16 MemFree:0.7 MemAvailable:18.0 Cached:22.8 AnonPages:11.5 Mapped:19.6 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:21 MemFree:0.8 MemAvailable:17.6 Cached:22.3 AnonPages:11.9 Mapped:19.3 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:26 MemFree:0.7 MemAvailable:17.2 Cached:22.0 AnonPages:12.3 Mapped:19.1 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:31 MemFree:19.6 MemAvailable:29.5 Cached:15.5 AnonPages:0.1 Mapped:0.1 Shmem:4.7 
+  gpu 138265, 82739 MiB
+=== 17:09:36 MemFree:117.7 MemAvailable:117.1 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:41 MemFree:117.7 MemAvailable:117.1 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:46 MemFree:117.7 MemAvailable:117.1 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:51 MemFree:117.7 MemAvailable:117.1 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:09:56 MemFree:117.7 MemAvailable:117.1 Cached:0.2 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:01 MemFree:117.8 MemAvailable:117.2 Cached:0.1 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:07 MemFree:117.8 MemAvailable:117.2 Cached:0.1 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:12 MemFree:117.8 MemAvailable:117.2 Cached:0.1 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:17 MemFree:117.8 MemAvailable:117.2 Cached:0.1 AnonPages:0.1 Mapped:0.1 Shmem:0.0 
+=== 17:10:22 MemFree:117.8 MemAvailable:117.1 Cached:0.1 AnonPages:0.1 Mapped:0.1 Shmem:0.0 

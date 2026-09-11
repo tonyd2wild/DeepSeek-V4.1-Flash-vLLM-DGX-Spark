@@ -12,6 +12,27 @@
   - 1M max context was proven on a separate boot, with a 1,078,380-token DSpark KV pool.
 - Nothing on this page is a projection.
 
+## Three Sparks: the EXL3 TP3 lane
+
+The same model on **three** DGX Sparks instead of four, using bot-lab-21's [EXL3 3.5 bpw build](https://huggingface.co/bot-lab-21/DeepSeek-V4.1-Flash-EXL3-3.5bpw-Pollard) of the routed experts (everything else is the release's FP8). V4.1 had no TP3 path in vLLM, so this lane adds one: virtual attention heads (64 padded to 72), a vocabulary split that works at TP3, Engram rows for three ranks, a streaming weight loader, and a fix that lets the DSpark drafter's 128 experts load on three ranks. The full write-up, with every boot and what failed, is in [docs/EXL3-TP3.md](docs/EXL3-TP3.md).
+
+Serving config (exl3tp3a11): CUDA graphs, DSpark k=5, vision, 300K context, gmu 0.80. Same prompt set and bench as boot 10; throughput across the 8 prompt categories:
+
+| C | TP3 aggregate tok/s | TP3 per-stream tok/s | TP3 mean TTFT (s) | boot 10 aggregate tok/s |
+|---|---|---|---|---|
+| C1 | 46.0 | 51.5 | 0.30 | 38.0 |
+| C2 | 73.4 | 43.6 | 0.63 | 64.3 |
+| C3 | 100.1 | 38.5 | 0.41 | 78.7 |
+| C4 | 118.4 | 35.2 | 0.44 | 85.7 |
+| C5 | 134.4 | 31.7 | 0.46 | 114.2 |
+| C6 | 152.9 | 29.6 | 0.50 | 131.9 |
+
+| | TP3, DSpark (exl3tp3a11) | TP3, no DSpark (exl3tp3a10) | boot 10, 4 Sparks |
+|---|---|---|---|
+| KV pool, tokens | 678,950 | 1,995,725 | 1,070,168 |
+| cold prefill, 93,335-token prompt | 1,199 tok/s | 1,155 tok/s | 1,194 tok/s |
+| vision and tool checks | 7/7 pass | 7/7 pass | 7/7 pass |
+
 ## Vision and tool calling (on in the serving config)
 
 Both are live on boot 10 and tested end to end with `tools/vision_tools_demo.py`; the output is in [`results/boot10/vision-tools.txt`](results/boot10/vision-tools.txt). The test images are generated in the script, so each expected answer is known exactly.
@@ -256,6 +277,9 @@ In boot order. Details in `docs/`.
 | `launch/` | `dsv41-tp4.sh <rank>`, `boot_dsv41.sh` (worker-first fan-out), and one `bootN-go.sh` per boot. `boot10-go.sh` is the serving config. |
 | `tools/` | Launch wrapper, pre-launch steps, boot poll, post-serve checks, bench report, `engram_local.py` (node-local Engram rows), `gpuflip.py` / `flipsum.py` (GPU slow-state probe), `nccl_lat.py` (4-node all-reduce check), `idletest.py` (per-step timing after idle vs back to back), `vision_tools_demo.py` (vision and tool-calling checks). |
 | `bench/` | Fixed prompt set v1, C1-C6 bench, long-context needle test. |
+| `docs/EXL3-TP3.md`, `exl3/` | The EXL3 TP3 lane: write-up and bring-up log, launch and guard scripts (`exl3/try4/`), prep tools, memory evidence. |
+| `patch/exl3-tp3/` | The TP3 patch set (mounted over the image like `patch/`), with `MD5SUMS.txt`. |
+| `results/exl3tp3a*/` | Per-boot bench, report, comparisons and vision/tool checks for the TP3 lane. |
 | `docs/` | Recipe and one post-mortem per failure. |
 | `results/` | Head logs of every boot, proofs, bench output, pre-launch GPU and network checks. |
 
