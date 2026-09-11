@@ -191,6 +191,19 @@ Throughput across the 8 prompt categories, same bench as boot 10:
 
 Ahead of boot 10 at 5 of 6 concurrency levels and behind the TP3 lane on the same checkpoint at every level: on EXL3 the fourth Spark buys context rather than speed. Vision and tool checks: 7/7 PASS. Cold prefill: 1,326 tok/s at 2,950, 1,402 tok/s at 11,592, 957 tok/s at 46,810, 1,026 tok/s at 93,335 (prompt tokens); boot 10 does 1,194 tok/s on the same 93,335-token prompt. Full tables in `results/exl3tp4b/report.md`, with comparisons against boot 10 and the TP3 lane.
 
+**Repeat runs (2026-09-11, about 90 minutes after startup).** Two more C1-C6 runs on the same serving config agree with each other and come in well above the first run:
+
+| C | aggregate, first run | aggregate, repeat 1 | aggregate, repeat 2 | per-stream (first / r1 / r2) | mean TTFT s (first / r1 / r2) |
+|---|---|---|---|---|---|
+| C1 | 41.6 | 54.1 | 57.1 | 46.4 / 60.1 / 63.4 | 0.37 / 0.26 / 0.25 |
+| C2 | 62.2 | 90.8 | 89.2 | 37.5 / 52.2 / 51.1 | 0.77 / 0.33 / 0.33 |
+| C3 | 101.1 | 115.5 | 112.6 | 38.2 / 44.4 / 44.2 | 0.44 / 0.35 / 0.38 |
+| C4 | 106.7 | 137.8 | 142.6 | 30.9 / 40.4 / 42.1 | 0.51 / 0.43 / 0.42 |
+| C5 | 129.2 | 167.6 | 165.9 | 30.4 / 38.8 / 39.1 | 0.56 / 0.44 / 0.43 |
+| C6 | 141.2 | 170.9 | 176.1 | 27.7 / 33.1 / 34.8 | 0.58 / 0.47 / 0.48 |
+
+The first run was taken right after startup, while the two wide-slice ranks were down to 4-5 GiB of MemFree; the likely cause (not proven) is Engram pages being pushed out of the page cache, which slows decode. Coding and JSON, the first two C1 prompts, match across the first run and repeat 1 (coding about 81 tok/s in all three runs); every later prompt type was 30-60% slower in the first run only. The comparison with boot 10 above uses each config's first post-boot run; boot 10 has no repeat runs, and its drop-caches cron may affect it the same way, so the repeat runs are not a stock-vs-EXL3 claim. Files: `results/exl3tp4b-rep1/`, `results/exl3tp4b-rep2/`.
+
 **Bench conditions.** The two wide ranks served with 7 to 12 GiB free. When the cold-prefill sweep began, their free memory stepped down about 3.7 GiB (the same long-context step as on TP3) while Engram row reads filled the page cache and pushed MemFree on Asusi down to 1.5 GiB. One-shot cache drops, then `exl3/tp4/memfree_flusher.sh` (drops clean cache when MemFree falls under 4 GiB), kept both ranks out of that zone; the 32K and 64K prefill runs overlapped those drops. `flusher2.sh`'s test (Cached minus Mapped minus Shmem) goes negative on these boxes because Mapped already counts the shmem mappings, so it never fired during serving; the next boots should use `memfree_flusher.sh` instead.
 
 ## Credits

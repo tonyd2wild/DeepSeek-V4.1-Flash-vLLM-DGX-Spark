@@ -58,6 +58,8 @@ EXL3 splits the 2304-wide experts 512/640/640/512 across four ranks, so two Spar
 | C5 | 129.2 | 30.4 | 0.56 | 114.2 | 134.4 |
 | C6 | 141.2 | 27.7 | 0.58 | 131.9 | 152.9 |
 
+Two repeat runs about 90 minutes after startup came in higher: C1 54.1 and 57.1 tok/s, C6 170.9 and 176.1 tok/s (the first run above was taken right after startup, with the two wide-slice ranks short on memory; boot 10 has no repeat runs, so they are not a stock comparison; details in the doc).
+
 Launch and guard scripts are in `exl3/tp4/`; the full write-up is in [docs/EXL3-TP3.md](docs/EXL3-TP3.md).
 
 ## Vision and tool calling (on in the serving config)

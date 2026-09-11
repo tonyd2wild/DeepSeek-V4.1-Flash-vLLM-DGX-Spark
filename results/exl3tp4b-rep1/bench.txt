@@ -1,0 +1,82 @@
+[exl3tp4b-rep1] warmup
+  C1 coding        agg   75.82 tok/s  per-stream 81.2  ttft 0.186s
+  C1 json          agg   51.28 tok/s  per-stream 57.5  ttft 0.194s
+  C1 narrative     agg   29.29 tok/s  per-stream 30.41  ttft 0.226s
+  C1 prose         agg   37.18 tok/s  per-stream 39.42  ttft 0.216s
+  C1 math          agg   74.34 tok/s  per-stream 82.95  ttft 0.26s
+  C1 reasoning     agg   63.45 tok/s  per-stream 68.66  ttft 0.253s
+  C1 summary       agg   33.84 tok/s  per-stream 38.16  ttft 0.443s
+  C1 format        agg   67.67 tok/s  per-stream 82.48  ttft 0.29s
+  C1 ceiling_count agg   90.28 tok/s  per-stream 97.39  ttft 0.203s
+  C2 coding        agg  142.21 tok/s  per-stream 78.09  ttft 0.263s
+  C2 json          agg   99.39 tok/s  per-stream 60.25  ttft 0.337s
+  C2 narrative     agg   51.09 tok/s  per-stream 27.14  ttft 0.253s
+  C2 prose         agg   53.18 tok/s  per-stream 28.34  ttft 0.243s
+  C2 math          agg  123.33 tok/s  per-stream 69.32  ttft 0.287s
+  C2 reasoning     agg  101.36 tok/s  per-stream 55.35  ttft 0.28s
+  C2 summary       agg   46.60 tok/s  per-stream 30.4  ttft 0.653s
+  C2 format        agg  109.55 tok/s  per-stream 68.74  ttft 0.325s
+  C2 ceiling_count agg  167.04 tok/s  per-stream 89.9  ttft 0.213s
+  C3 coding        agg  176.06 tok/s  per-stream 64.47  ttft 0.288s
+  C3 json          agg  118.22 tok/s  per-stream 50.94  ttft 0.395s
+  C3 narrative     agg   62.81 tok/s  per-stream 22.12  ttft 0.254s
+  C3 prose         agg   68.19 tok/s  per-stream 24.6  ttft 0.249s
+  C3 math          agg  163.06 tok/s  per-stream 61.17  ttft 0.317s
+  C3 reasoning     agg  130.58 tok/s  per-stream 46.92  ttft 0.328s
+  C3 summary       agg   68.01 tok/s  per-stream 26.81  ttft 0.642s
+  C3 format        agg  136.85 tok/s  per-stream 58.47  ttft 0.365s
+  C3 ceiling_count agg  220.26 tok/s  per-stream 79.48  ttft 0.259s
+  C4 coding        agg  226.66 tok/s  per-stream 62.81  ttft 0.337s
+  C4 json          agg  153.86 tok/s  per-stream 47.42  ttft 0.477s
+  C4 narrative     agg   69.20 tok/s  per-stream 19.92  ttft 0.291s
+  C4 prose         agg   81.75 tok/s  per-stream 21.97  ttft 0.277s
+  C4 math          agg  168.54 tok/s  per-stream 50.1  ttft 0.356s
+  C4 reasoning     agg  161.37 tok/s  per-stream 43.8  ttft 0.353s
+  C4 summary       agg   71.23 tok/s  per-stream 23.04  ttft 0.931s
+  C4 format        agg  169.88 tok/s  per-stream 54.32  ttft 0.394s
+  C4 ceiling_count agg  279.82 tok/s  per-stream 75.09  ttft 0.245s
+  C5 coding        agg  265.49 tok/s  per-stream 59.15  ttft 0.363s
+  C5 json          agg  157.41 tok/s  per-stream 40.17  ttft 0.51s
+  C5 narrative     agg   80.46 tok/s  per-stream 17.13  ttft 0.313s
+  C5 prose         agg   93.36 tok/s  per-stream 20.85  ttft 0.302s
+  C5 math          agg  219.32 tok/s  per-stream 50.16  ttft 0.382s
+  C5 reasoning     agg  201.48 tok/s  per-stream 43.96  ttft 0.368s
+  C5 summary       agg   94.86 tok/s  per-stream 23.19  ttft 0.873s
+  C5 format        agg  228.20 tok/s  per-stream 55.53  ttft 0.374s
+  C5 ceiling_count agg  321.82 tok/s  per-stream 69.66  ttft 0.293s
+  C6 coding        agg  281.75 tok/s  per-stream 52.35  ttft 0.371s
+  C6 json          agg  177.63 tok/s  per-stream 37.7  ttft 0.521s
+  C6 narrative     agg   82.25 tok/s  per-stream 15.39  ttft 0.332s
+  C6 prose         agg  100.77 tok/s  per-stream 18.29  ttft 0.298s
+  C6 math          agg  227.71 tok/s  per-stream 43.52  ttft 0.372s
+  C6 reasoning     agg  171.73 tok/s  per-stream 32.18  ttft 0.373s
+  C6 summary       agg   94.16 tok/s  per-stream 19.43  ttft 1.021s
+  C6 format        agg  231.34 tok/s  per-stream 46.0  ttft 0.443s
+  C6 ceiling_count agg  347.91 tok/s  per-stream 62.69  ttft 0.322s
+Prompt set `v1` (identical across boots), temperature 0, thinking off. Tokens from the server's usage block; TTFT = first token delta.
+
+### Throughput by concurrency (8 categories; the counting ceiling is excluded)
+
+| C | aggregate tok/s | per-stream tok/s | mean TTFT (s) |
+|---|---|---|---|
+| C1 | 54.11 | 60.1 | 0.259 |
+| C2 | 90.84 | 52.2 | 0.33 |
+| C3 | 115.47 | 44.44 | 0.355 |
+| C4 | 137.81 | 40.42 | 0.427 |
+| C5 | 167.57 | 38.77 | 0.436 |
+| C6 | 170.92 | 33.11 | 0.466 |
+
+### Per-stream tok/s by category
+
+| category | C1 | C2 | C3 | C4 | C5 | C6 |
+|---|---|---|---|---|---|---|
+| coding | 81.2 | 78.09 | 64.47 | 62.81 | 59.15 | 52.35 |
+| json | 57.5 | 60.25 | 50.94 | 47.42 | 40.17 | 37.7 |
+| narrative | 30.41 | 27.14 | 22.12 | 19.92 | 17.13 | 15.39 |
+| prose | 39.42 | 28.34 | 24.6 | 21.97 | 20.85 | 18.29 |
+| math | 82.95 | 69.32 | 61.17 | 50.1 | 50.16 | 43.52 |
+| reasoning | 68.66 | 55.35 | 46.92 | 43.8 | 43.96 | 32.18 |
+| summary | 38.16 | 30.4 | 26.81 | 23.04 | 23.19 | 19.43 |
+| format | 82.48 | 68.74 | 58.47 | 54.32 | 55.53 | 46.0 |
+| ceiling_count | 97.39 | 89.9 | 79.48 | 75.09 | 69.66 | 62.69 |
+wrote /var/tmp/boot-results/exl3tp4b-rep1/bench-exl3tp4b-rep1.json and .md
