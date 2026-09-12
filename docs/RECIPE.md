@@ -48,10 +48,32 @@ Build each image on every node; they are node-local.
 
 | image | how | why |
 |---|---|---|
-| `vllm-dsv41:overlay1` | `build/Dockerfile.overlay` on `vllm/vllm-openai:nightly-8a728663c1c3eeace834a95f5654fa653cc1998c` (the exact merge-base of vLLM branch `dsv41-feat`), plus `_C_stable_libtorch` rebuilt for sm_121a (`build/build_stable_ext.sh`) | The branch's kernel changes all live in that one extension. |
+| `vllm-dsv41:overlay1` | `build/Dockerfile.overlay` on `vllm/vllm-openai:nightly-8a728663c1c3eeace834a95f5654fa653cc1998c` (the merge-base of vLLM branch `dsv41-feat` at commit `e47aa780b`, the tree every patch here targets; see "Pin the branch commit" below), plus `_C_stable_libtorch` rebuilt for sm_121a (`build/build_stable_ext.sh`) | The branch's kernel changes all live in that one extension. |
 | `vllm-dsv41:overlay3` | `build/build_overlay3.sh`: FlashInfer v0.7.0rc1 (`07869c61`) with pinned submodules; the stale 0.6.18 jit-cache/cubin packages are removed | FlashInfer 0.6.18's SM120 sparse-MLA decode lacks V4.1's topk of 1152. |
 | `vllm-dsv41:overlay4` | `build/build_overlay4.sh`: prebuilds `mxfp8_gemm_cutlass_sm120` with `MAX_JOBS=2` | Its runtime compile (7 CUTLASS files, 22 parallel jobs) exhausted host memory on all four nodes at once in boot 3. |
 | `vllm-dsv41:overlay5` | `build/build_overlay5.sh` + `build/prewarm5.py`: rebuilds `sparse_mla_sm120` under the exact runtime environment; `build/verify5.py` checks that nothing compiles at runtime | This is the serving image. |
+
+### Pin the branch commit, not the branch
+
+The seven patch files are whole-file replacements of `dsv41-feat` files **as they stood at commit
+`e47aa780bccf59f59dfa2cbb18e17a10b4fe69ba`** (2026-09-10 07:24 UTC). The branch was force-pushed at 00:49 UTC on 2026-09-11 and
+took more model commits after that (among them `99c83fbc4`, which changes the indexer around the file `patch/attention.py`
+replaces). Building the overlay from the branch head after that date and mounting these patches gives an engine that boots
+without a single error, passes profiling and graph capture, and emits one repeated garbage token from the first position, with
+DSpark accepting nothing. It is not the checkpoint and not the node count; it is the tree under the patches.
+
+The branch itself is gone: it was merged into main (vllm-project/vllm#56214) and deleted at 09:11 UTC on 2026-09-11, so
+`git clone --branch dsv41-feat` now fails. GitHub still serves the commit by full sha (branch `dsv41-optimized` also pointed at
+it on 2026-09-12):
+
+```
+git clone https://github.com/vllm-project/vllm.git
+cd vllm && git fetch origin e47aa780bccf59f59dfa2cbb18e17a10b4fe69ba && git checkout e47aa780bccf59f59dfa2cbb18e17a10b4fe69ba
+```
+
+`build/fetch_vllm_branch.sh` does exactly that. If you must move to a newer branch commit, re-derive the patches from the
+per-fix diffs in `patch/*/` on the new files and re-run the tests next to them; do not mount the old files on a new tree. The
+before/after shas of every force push are listed by `GET /repos/vllm-project/vllm/activity?ref=refs/heads/dsv41-feat`.
 
 ## 4. Patches (bind-mounted over the image; nothing baked)
 
