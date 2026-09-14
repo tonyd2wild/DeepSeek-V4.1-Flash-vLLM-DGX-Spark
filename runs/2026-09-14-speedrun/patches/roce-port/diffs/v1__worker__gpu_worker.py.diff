@@ -1,0 +1,77 @@
+--- a/vllm/v1/worker/gpu_worker.py
++++ b/vllm/v1/worker/gpu_worker.py
+@@ -174,6 +174,30 @@
+         return object.__getattribute__(self, name)
+ 
+ 
++class _B12xRoceCheckedAsyncOutput(AsyncModelRunnerOutput):
++    """An asynchronous output whose completion is followed by the RoCEnante check.
++
++    From local-inference-lab/vllm#597 (Jason, @original-el8).
++    """
++
++    def __init__(
++        self, inner: AsyncModelRunnerOutput, check: Callable[[], None]
++    ) -> None:
++        self._inner = inner
++        self._check = check
++
++    def get_output(self) -> ModelRunnerOutput:
++        output = self._inner.get_output()
++        self._check()
++        return output
++
++    def __getattr__(self, name: str):
++        # Forward anything else (e.g. per-runner attributes) to the wrapped output.
++        if name in ("_inner", "_check"):
++            raise AttributeError(name)
++        return getattr(self._inner, name)
++
++
+ class Worker(WorkerBase):
+     def __init__(
+         self,
+@@ -1109,7 +1133,33 @@
+     def sample_tokens(
+         self, grammar_output: "GrammarOutput | None"
+     ) -> ModelRunnerOutput | AsyncModelRunnerOutput:
+-        return self.model_runner.sample_tokens(grammar_output)
++        return self._b12x_roce_guarded(
++            self.model_runner.sample_tokens(grammar_output)
++        )
++
++    def _b12x_roce_health_check(self) -> Callable[[], None] | None:
++        """The RoCEnante health check of the TP communicator, if one is active."""
++        communicator = get_tp_group().device_communicator
++        comm = getattr(communicator, "b12x_ar_comm", None)
++        if comm is None or getattr(comm, "disabled", True):
++            return None
++        return getattr(comm, "check_health", None)
++
++    def _b12x_roce_guarded(self, output):
++        """Fail-stop RoCEnante check once the step's output is on the host.
++
++        A synchronous output already holds the sampled tokens on the host, so
++        every collective of the step has completed and the check runs now; an
++        asynchronous output is wrapped so the check runs right after its
++        ``get_output()`` completes the copy (local-inference-lab/vllm#597).
++        """
++        check = self._b12x_roce_health_check()
++        if check is None:
++            return output
++        if isinstance(output, AsyncModelRunnerOutput):
++            return _B12xRoceCheckedAsyncOutput(output, check)
++        check()
++        return output
+ 
+     @torch.inference_mode()
+     @with_gpu_sync_check
+@@ -1186,7 +1236,7 @@
+             if isinstance(
+                 output, ModelRunnerOutput | AsyncModelRunnerOutput | NoneType
+             ):
+-                return output
++                return self._b12x_roce_guarded(output)
+ 
+         assert isinstance(output, IntermediateTensors)
+         parallel_config = self.vllm_config.parallel_config

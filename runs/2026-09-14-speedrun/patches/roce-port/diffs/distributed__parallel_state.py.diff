@@ -1,0 +1,30 @@
+--- a/vllm/distributed/parallel_state.py
++++ b/vllm/distributed/parallel_state.py
+@@ -675,6 +675,7 @@
+ 
+         # only cuda uses this function,
+         # so we don't abstract it into the base class
++        maybe_b12x_context: AbstractContextManager[Any] = nullcontext()
+         maybe_ca_context = nullcontext()
+         maybe_fi_pcie_ipc_context: AbstractContextManager[Any] = nullcontext()
+         maybe_aiter_context = nullcontext()
+@@ -690,6 +691,11 @@
+                 self.device_communicator,
+                 (CudaCommunicator, XpuCommunicator),
+             )
++            # RoCEnante: compile/allocate before capture and pin the capture
++            # stream (port of local-inference-lab/vllm#597).
++            b12x_ar_comm = getattr(self.device_communicator, "b12x_ar_comm", None)
++            if b12x_ar_comm is not None:
++                maybe_b12x_context = b12x_ar_comm.capture(stream=stream)
+             ca_comm = self.device_communicator.ca_comm
+             if ca_comm is not None:
+                 maybe_ca_context = ca_comm.capture()  # type: ignore
+@@ -713,6 +719,7 @@
+ 
+         with (
+             torch.cuda.stream(stream),
++            maybe_b12x_context,
+             maybe_ca_context,
+             maybe_fi_pcie_ipc_context,
+             maybe_aiter_context,

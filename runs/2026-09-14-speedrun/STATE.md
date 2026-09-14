@@ -170,6 +170,15 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - **Indexer prefill TP-split draft** (agent, `scratchpad/idxsplit/`): one file, `sparse_attn_indexer.py`, flag `DSV41_INDEXER_TP_SPLIT=1`. Projected prefill +27% at 47K and +48% at 93K (estimate). Needs the GPU exactness test before any boot.
 - **NCCL research agent (07:03):** ranks `NCCL_MAX_NCHANNELS=4` then `2` (NVIDIA NCCL tuning blog), `NCCL_ALGO=Tree` (UMD PSSG arXiv 2511.09557), `NCCL_PROTO=LL` diagnostic only, a size-banded tuner plugin, and `NCCL_BUFFSIZE=2097152`. Custom/symm-mem all-reduce is single-node only in vLLM. E12 (ch4), E15 (Tree) and E16 (ch2) come from this.
 - **Model-folder `TUNING_BACKLOG.md` leads (07:08):** b12x RoCE one-shot all-reduce (b12x `docs/rocenante.md`, local-inference-lab/vllm#597: 48 KB AR 65.5 → 23.6 us on 4 Sparks; b12x 1.3.0 in exl3b has only `comm/pcie`, so this needs a newer b12x plus a vLLM integration); draft KV group page size 256 (Zeuss5/cuda-exl3 #2, NNNtrance: KV +82%, TTFT -20-30%); `CUDA_EXL3_MOE_BLOCK_M=16/32`; `NCCL_NTHREADS=256`. Two agents are researching the RoCE port and the page-size patch (`scratchpad/roce/`, `scratchpad/draftpage/`).
+- **E19 b12x RoCE one-shot all-reduce (agent report 07:24; files in `scratchpad/roce/`, copied to `/root/roce`):**
+  - No PyPI b12x has `comm.roce`. `Dockerfile.roce` overlays `b12x/comm/roce` from local-inference-lab/b12x at `b58f34ea` onto exl3a (every other b12x kernel stays 1.3.0) and builds its RDMA proxy .so, giving `vllm-dsv41:exl3a-roce`.
+  - vLLM side: local-inference-lab/vllm#597 ported onto our tree as 5 files (new `b12x_roce_all_reduce.py`, plus `cuda_communicator.py`, `parallel_state.py`, `envs.py`, `gpu_worker.py`). The 4 base files match the exl3a image md5 for md5. Patch set `dsv41-exl3-sr1roce` = sr1 + those 5 (18 mounts) on all 4 nodes.
+  - `sr-e19-roce-go.sh`: IMAGE exl3a-roce, sr1roce, E02 env plus `VLLM_ENABLE_ROCE_ALLREDUCE=1`, max 2MB all-reduce / 16MB all-gather, HCA rocep1s0f0, GID 3, spin limit 300M (about 5 min, so boot-time JIT skew cannot trip it). Rollback: `VLLM_ENABLE_ROCE_ALLREDUCE=0`.
+  - `/root/build_roce.sh` (detached, `build-roce.log`): waits for E05's boot to start, builds on all 4 nodes, and on 4/4 success puts `e19-roce` first in `queue.txt`.
+  - Upstream numbers (b12x `docs/rocenante.md`): 48 KB all-reduce 23.6 vs 65.5 us NCCL, 256 KB 58 vs 174 us. Estimate for us: 2.5-3.5 ms of a ~50 ms step, about +5-7% at C1.
+  - Risks: b12x#313 (one rank stuck while /health stays 200), so watch the E19 screen for stalls; custom all-reduce must stay enabled or RoCE turns off silently; 160 MB pinned per rank. Check the boot log for `B12X_ROCENANTE`.
+  - Credits: Jason @original-el8 (b12x#295, #315, vllm#597), Luke Alonso @lukealonso (aa90a277, 1a7e3ec2), @tobymao (b12x#313 hang report).
+- **Draft KV page 256 (NNNtrance, Zeuss5/cuda-exl3#2): not queued.** On V4.1 the 3 DSpark draft layers (40-42) are pure sliding window and share the target's SWA groups (64-token page); there is no 16-token draft group, and `_largest_kernel_block_within` is never called. The SM120 FlashInfer SWA backend accepts only 64-token pages, so 256 would fail at KV allocation. Our offline pool model: removing the drafter entirely is only +1.5% pool; page 256 would be -69%. Lead for later: layer 20's ratio-1 caches take ~52% of per-request blocks; 128-token pages there model at +59% pool, but the same 64-token kernel limit blocks it. `max_num_batched_tokens 4096` models at +12% pool (costs prefill). Files in `scratchpad/draftpage/`.
 - **Drafter skip on non-final prefill chunks: not queued.** The agent found it safe only as a partial skip (DSpark's 3 draft layers are 128-token sliding window, so the last 512 prompt rows must keep drafter KV). The drafter costs about 1.7 TFLOP per 8192-token chunk, roughly 15-30 ms of a ~4.7 s chunk (0.3-0.6%), inside noise. Draft kept in `scratchpad/drafterskip/`.
 - **idxsplit GPU test (07:13-07:14, Bluey, prehook; `results/test-idxsplit.txt`):**
   - First-chunk ratio-1 fp8 case, all three candidate modes, TP 4/3/2 simulated: split output SET-EQUAL to the unsplit reference, which itself varies in order between runs; candidates BYTE-EQUAL.
@@ -210,5 +219,9 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - **Harness deployed on Reddie:** `/root/sr_boot.sh <go> <label>` and `/root/sr_screen.sh <label>`. Local copies are in `tools/`.
 - **Mac:** keep-awake requested (session_idle).
 
-## Next action
-Wait for the baseline bench (background task), then run SCREEN on the baseline; meanwhile read the sub-agent reports and build the experiment queue.
+## Next action (updated 07:16)
+- Running: E04 `e04-bss` (queue-1b), then E05 `e05-k10`, then the dynamic queue (`queue.txt`) from ~07:45.
+- Keepers so far: E01 (ch8), E02 (Engram fast), E09 (128 read threads, prefill). Dropped: E03 (b12x), wo_a, drafter skip, block_m16.
+- Waiting on agents: idxsplit test fix (r2 case), b12x RoCE port (`scratchpad/roce/`), draft KV page size (`scratchpad/draftpage/`).
+- ~10:15 UTC at the latest: stop the dynamic queue after the current label (`touch queue.stop`), build `exl3tp4b-ablit-best` with `sr_combo.sh` from the keepers, boot it with `sr_run.sh`, then `sr_final.sh`. Copy the go script to `asusi:~/exl3tp4b-ablit-best-go.sh`.
+- 11:00 UTC: issue and PR pass (`DRAFT-issue-pr-replies.md`, PR #7 added). 12:00 UTC: best config serving, repo pushed, memory updated.

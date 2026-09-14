@@ -1,0 +1,57 @@
+# RoCEnante layer on top of the serving image.
+#   docker build -f Dockerfile.roce --build-arg BASE=vllm-dsv41:exl3a -t vllm-dsv41:exl3a-roce .
+# Build on every node (images are node-local). Needs outbound HTTPS to github.com.
+#
+# Credits: b12x.comm.roce (RoCEnante) by Jason @original-el8 (local-inference-lab/b12x#295,
+# #315) and Luke Alonso @lukealonso (aa90a277 dual-rail striping, 1a7e3ec2 DSV4 graph tuning).
+# https://github.com/local-inference-lab/b12x/blob/b58f34ea/docs/rocenante.md
+#
+# WHY AN OVERLAY, NOT `pip install b12x==X`: no PyPI release has comm.roce (PyPI tops out at
+# 1.3.0 from 2026-08-13; RoCE merged 2026-09-03). b12x main after 77351c13 (2026-09-14) needs
+# prepared plan= objects that the #597 adapter does not pass. b58f34ea is the last roce state
+# with API_VERSION 1 and plain prepare(). The roce package imports only b12x._lib.{meta,
+# compiler, runtime_control, utils}; those match 1.2.4-era b12x except for a cache-key helper
+# and a 2-line utils change, so every MoE/GEMM/attention kernel vLLM uses stays at 1.3.0.
+ARG BASE=vllm-dsv41:exl3a
+FROM ${BASE}
+
+ARG B12X_ROCE_SHA=b58f34eaf978277621efced6678e6713fd7122e4
+
+# Proxy build deps: a C compiler plus libibverbs headers. libibverbs-dev pins libibverbs1 to
+# its own version; the check prints the ibverbs packages so an upgrade is visible in the log.
+RUN set -eux; \
+    dpkg -l | grep -E 'ibverbs|rdma-core' || true; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends gcc libc6-dev libibverbs-dev; \
+    rm -rf /var/lib/apt/lists/*; \
+    dpkg -l | grep -E 'ibverbs|rdma-core' || true
+
+# Overlay b12x/comm/roce and b12x/comm/__init__.py (adds "roce" to _OP_MODULES) at the pin.
+# Also keep the upstream test and benchmark for reference.
+RUN set -eux; \
+    B=$(python3 -c "import b12x, os; print(os.path.dirname(b12x.__file__))"); \
+    python3 -c "import importlib.metadata as m; print('b12x', m.version('b12x'))"; \
+    tmp=$(mktemp -d); \
+    python3 -c "import urllib.request,sys; urllib.request.urlretrieve(sys.argv[1], sys.argv[2])" \
+      "https://codeload.github.com/local-inference-lab/b12x/tar.gz/${B12X_ROCE_SHA}" "$tmp/b12x.tgz"; \
+    tar -xzf "$tmp/b12x.tgz" -C "$tmp" --strip-components=1; \
+    cp "$B/comm/__init__.py" "$B/comm/__init__.py.pre-roce"; \
+    rm -rf "$B/comm/roce"; \
+    cp -r "$tmp/b12x/comm/roce" "$B/comm/roce"; \
+    cp "$tmp/b12x/comm/__init__.py" "$B/comm/__init__.py"; \
+    mkdir -p /opt/b12x-roce; \
+    cp "$tmp/benchmarks/benchmark_roce_oneshot.py" "$tmp/tests/comm/test_roce_oneshot_gpu.py" /opt/b12x-roce/; \
+    echo "${B12X_ROCE_SHA}" > /opt/b12x-roce/B12X_ROCE_SHA; \
+    rm -rf "$tmp"
+
+# Build the RDMA proxy .so at image build time (no compiler runs at startup) into a fixed dir.
+ENV B12X_ROCE_CACHE_DIR=/opt/b12x-roce/cache
+RUN set -eux; \
+    python3 -c "from b12x.comm.roce import _proxy; print('proxy', _proxy.load())"; \
+    python3 -c "from b12x.comm import roce; assert roce.API_VERSION == 1, roce.API_VERSION; print('roce API_VERSION', roce.API_VERSION)"; \
+    python3 -c "import vllm.utils.b12x as u; print('vllm b12x submodules', {k: v is not None for k, v in u._SUBMODULES.items()} if hasattr(u, '_SUBMODULES') else 'ok')"
+
+# ---- Option B (NOT recommended tonight): full b12x upgrade instead of the overlay ----
+# Changes every b12x kernel vLLM e47aa780b calls (MoE, linear, attention) and pulls a newer
+# compiler cache key. Keep --no-deps so pip cannot touch torch / cutlass-dsl.
+# RUN pip install --no-deps "b12x @ git+https://github.com/local-inference-lab/b12x@${B12X_ROCE_SHA}"
