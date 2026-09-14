@@ -129,7 +129,29 @@ Owner: Tony (asleep). Operator: Claude (this session). This file is the source o
 - **PR #5:** `verify5.py` compiles, and the logic matches hyudryu's report. It includes a stray `build/__pycache__/verify5.cpython-314.pyc`: merge it, then remove the pyc and add `__pycache__/` to `.gitignore` in a follow-up commit.
 - Drafts are in `DRAFT-issue-pr-replies.md`. Re-read every thread for new comments before posting.
 
+## Read-pool size test (offline, Bluey, 06:48 UTC): the fast path scales with threads
+Fast path, prefill-sized gather of 98,304 rows (cold / warm), fresh rows each run:
+
+| threads | cold | warm |
+|---|---|---|
+| 32 | 387 ms | 24 ms |
+| 64 | 194 ms | 26 ms |
+| **128** | **105 ms** | 26 ms |
+
+- The old preadv path was 604-634 ms cold at any thread count.
+- Decode-sized gather (288 rows): 4.9-7.6 ms cold, 1.6-2.2 ms warm at every thread count.
+- Bit-identical in all runs.
+- Hence **E09** = E02 + `ENGRAM_THREADS=128` (`sr-e09-thr128-go.sh`), moved up to run right after E03.
+
+## E03 check
+The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for MXFP8 GEMM", with the `VLLM_DISABLED_KERNELS` set in place. The experiment is valid.
+
 ## Queues running on Reddie (detached)
+- **06:49 reorder:**
+  - queue-1 was stopped. Its E03 run continued as `sr_run.sh e03-b12x`.
+  - **queue-1b** (`queue-1b.log`, NOBASE=1): after E03, runs E09 `e09-thr128`, then E04 `e04-bss`, then E05 `e05-k10`.
+  - queue-2 is unchanged: it waits for E05, then runs E06, E07, E08.
+- **Gotcha:** never `pgrep -f <pattern>` and `kill` from an ssh `bash -c` whose own command line contains the pattern: it kills your own shell. Use a script file (`/root/start_q1b.sh` does this).
 - **queue-1** (`queue-1.log`): after E02 → E03 `e03-b12x`, E04 `e04-bss`, E05 `e05-k10`. Falls back to `e01-nccl-ch8` if E02 fails boot or quality.
 - **queue-2** (`queue-2.log`, NOBASE=1): after E05 → E06 `e06-mb16k` (MAX_BATCHED 16384), E07 `e07-shexp` (VLLM_SHARED_EXPERTS_STREAM_TOKEN_THRESHOLD=8192), E08 `e08-noexpseg` (expandable_segments:False). All three stack on E02. Fallback is `e02-ch8-fast`.
 - Expected timeline, about 20 min each: E03 ~06:52, E04 ~07:12, E05 ~07:32, E06 ~07:52, E07 ~08:12, E08 ~08:32.
