@@ -1,2 +1,4 @@
 engram.py srt/layers/engram.py
 weight_utils.py srt/model_loader/weight_utils.py
+flash_mla_sm120.py kernels/ops/attention/flash_mla_sm120.py
+deepseek_v4_backend.py srt/layers/attention/deepseek_v4_backend.py

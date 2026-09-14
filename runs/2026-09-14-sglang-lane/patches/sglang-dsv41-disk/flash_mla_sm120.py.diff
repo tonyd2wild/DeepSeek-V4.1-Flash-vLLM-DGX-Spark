@@ -1,0 +1,59 @@
+--- a/sglang/kernels/ops/attention/flash_mla_sm120.py
++++ b/sglang/kernels/ops/attention/flash_mla_sm120.py
+@@ -257,7 +257,7 @@
+         softmax_scale,
+         topk_length=topk_length,
+         attn_sink=attn_sink,
+-        extra_kv_cache=extra_kv_u8,
++        extra_kv_cache=_split_extra_kv_to_64(extra_kv_u8, extra_idx),
+         extra_indices=extra_idx,
+         extra_topk_length=extra_topk_length,
+         mid_out=None,
+@@ -449,6 +449,7 @@
+     kv_u8: torch.Tensor,
+     src_pbs: int,
+     touched_indices: Optional[torch.Tensor] = None,
++    buf_tag: str = "",
+ ) -> torch.Tensor:
+     """Split pbs=N footer-format pages into pbs=64 footer-format pages.
+ 
+@@ -472,7 +473,7 @@
+     # Pre-allocated grow-only buffer for page-split output per device.
+     dev = kv_u8.device
+     buffers = get_resources().buffers
+-    key = f"flash_mla_sm120_split:{dev}"
++    key = f"flash_mla_sm120_split{buf_tag}:{dev}"
+     buf = buffers.get(key)
+     if buf is None or buf.shape[0] < num_dst_pages:
+         # The first allocation can happen under inference mode (autotune), but
+@@ -551,6 +552,21 @@
+     )
+ 
+ 
++def _split_extra_kv_to_64(extra_u8, extra_idx):
++    """Tech2Wild 2026-09-14 (MIT): FlashInfer's SM120 sparse MLA reads the extra
++    (low-ratio) KV source at page_block_size 64, like the main pool, but the paths
++    below passed it through unsplit. Split its pages the same way, into a separate
++    persistent buffer (the main pool's split buffer is still in use this step).
++    Pass-through when the extra pool already pages at 64, or at a size that is not a
++    multiple of 64 (unchanged from upstream in that case)."""
++    if extra_u8 is None or extra_u8.ndim < 3:
++        return extra_u8
++    pbs = extra_u8.shape[1]
++    if pbs <= _PBS_DST or pbs % _PBS_DST != 0:
++        return extra_u8
++    return _split_kv_pages_to_64(extra_u8, pbs, touched_indices=extra_idx, buf_tag="_extra")
++
++
+ def _flash_mla_flashinfer(
+     q,
+     k_cache,
+@@ -636,7 +652,7 @@
+         d_v=head_dim_v,
+         topk_length=topk_length,
+         attn_sink=attn_sink,
+-        extra_kv_cache=extra_kv_64,
++        extra_kv_cache=_split_extra_kv_to_64(extra_kv_64, extra_idx),
+         extra_indices=extra_idx,
+         extra_topk_length=extra_topk_length,
+         mid_out=mid_out,

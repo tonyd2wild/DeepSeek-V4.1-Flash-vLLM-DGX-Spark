@@ -284,9 +284,78 @@ WEIGHT_EDITS = [
     ),
 ]
 
+EXTRA_SPLIT_HELPER = '''def _split_extra_kv_to_64(extra_u8, extra_idx):
+    """Tech2Wild 2026-09-14 (MIT): FlashInfer's SM120 sparse MLA reads the extra
+    (low-ratio) KV source at page_block_size 64, like the main pool, but the paths
+    below passed it through unsplit. Split its pages the same way, into a separate
+    persistent buffer (the main pool's split buffer is still in use this step).
+    Pass-through when the extra pool already pages at 64, or at a size that is not a
+    multiple of 64 (unchanged from upstream in that case)."""
+    if extra_u8 is None or extra_u8.ndim < 3:
+        return extra_u8
+    pbs = extra_u8.shape[1]
+    if pbs <= _PBS_DST or pbs % _PBS_DST != 0:
+        return extra_u8
+    return _split_kv_pages_to_64(extra_u8, pbs, touched_indices=extra_idx, buf_tag="_extra")
+
+
+def _flash_mla_flashinfer(
+'''
+
+FLASH_EDITS = [
+    (
+        "    touched_indices: Optional[torch.Tensor] = None,\n"
+        ") -> torch.Tensor:\n"
+        '    """Split pbs=N footer-format pages into pbs=64 footer-format pages.\n',
+        "    touched_indices: Optional[torch.Tensor] = None,\n"
+        '    buf_tag: str = "",\n'
+        ") -> torch.Tensor:\n"
+        '    """Split pbs=N footer-format pages into pbs=64 footer-format pages.\n',
+    ),
+    (
+        '    key = f"flash_mla_sm120_split:{dev}"\n',
+        '    key = f"flash_mla_sm120_split{buf_tag}:{dev}"\n',
+    ),
+    ("def _flash_mla_flashinfer(\n", EXTRA_SPLIT_HELPER),
+    (
+        "        extra_kv_cache=extra_kv_u8,\n",
+        "        extra_kv_cache=_split_extra_kv_to_64(extra_kv_u8, extra_idx),\n",
+    ),
+    (
+        "        extra_kv_cache=extra_kv_64,\n",
+        "        extra_kv_cache=_split_extra_kv_to_64(extra_kv_64, extra_idx),\n",
+    ),
+]
+
+BACKEND_EDITS = [
+    (
+        "            force_deep_gemm_metadata=(\n"
+        "                self.enable_deepseek_v4_fp4_indexer and get_platform().is_sm120\n"
+        "            ),\n",
+        "            # Tech2Wild 2026-09-14 (MIT): force DeepGEMM's own planner for the V4.1\n"
+        "            # ratio-1/2 sources on SM120 too; it matches DeepGEMM's SM120 kernels\n"
+        "            # (split_kv=128), the generic JIT planner encodes split_kv=256.\n"
+        "            force_deep_gemm_metadata=(\n"
+        "                (self.enable_deepseek_v4_fp4_indexer or compress_ratio in (1, 2))\n"
+        "                and get_platform().is_sm120\n"
+        "            ),\n",
+    ),
+    (
+        "            use_topk_v2=False,\n"
+        "            use_prefill_cuda_graph=True,\n",
+        "            use_topk_v2=False,\n"
+        "            force_deep_gemm_metadata=get_platform().is_sm120,  # Tech2Wild 2026-09-14 (MIT)\n"
+        "            use_prefill_cuda_graph=True,\n",
+    ),
+]
+
 patch("sglang/srt/layers/engram.py", ENGRAM_EDITS, "engram.py")
 patch("sglang/srt/model_loader/weight_utils.py", WEIGHT_EDITS, "weight_utils.py")
+patch("sglang/kernels/ops/attention/flash_mla_sm120.py", FLASH_EDITS, "flash_mla_sm120.py")
+patch("sglang/srt/layers/attention/deepseek_v4_backend.py", BACKEND_EDITS, "deepseek_v4_backend.py")
 open(os.path.join(OUT, "mounts.txt"), "w").write(
     "engram.py srt/layers/engram.py\nweight_utils.py srt/model_loader/weight_utils.py\n"
+    "flash_mla_sm120.py kernels/ops/attention/flash_mla_sm120.py\n"
+    "deepseek_v4_backend.py srt/layers/attention/deepseek_v4_backend.py\n"
 )
 print("mounts.txt written")

@@ -36,7 +36,7 @@ fi
 
 docker rm -f "$NAME" > /dev/null 2>&1 || true
 ARGS=(--model-path "$MODEL" --served-model-name deepseek-v4.1-flash
-  --tp 4 --nnodes 4 --node-rank "$R" --dist-init-addr "$HEAD:$DIST_PORT"
+  --tp 4 --ep-size "${EP:-4}" --nnodes 4 --node-rank "$R" --dist-init-addr "$HEAD:$DIST_PORT"
   --host 0.0.0.0 --port "$PORT"
   --context-length "$CTX" --mem-fraction-static "$MEMFRAC"
   --chunked-prefill-size "$CHUNK" --max-running-requests "$SEQS" --cuda-graph-max-bs-decode "$SEQS"
