@@ -320,6 +320,8 @@ In boot order. Details in `docs/`.
 
 **Sister repos:** [DeepSeek-V4-Flash-Vision-Exp (vLLM, 2x/4x Spark)](https://github.com/tonyd2wild/DeepSeek-v4-Flash-Vision-Exp-DSpark-1M-NVFP4-KV-2x-DGX-Spark) · [DeepSeek-V4-Flash-Vision (SGLang, 2x Spark)](https://github.com/tonyd2wild/DeepSeek-V4-Flash-Vision-SGLang-DGX-Spark)
 
+**Community ports:** [8x DGX Spark, TP8, 1M context, on dealignai's UNCENSORED-FP8 (im0xMagnus)](https://github.com/im0xMagnus/deepseek-v4.1-flash-uncensored-8x-dgx-spark) -- this recipe carried to eight ranks: the three launcher deltas eight ranks need, the sha pin, TP8 measurements at 300K and 1M.
+
 **Credits:**
 - The vLLM team, for the day-0 `dsv41-feat` branch.
 - Kai, for the first Engram-on-disk patch and the SM12x page-size patches.
