@@ -247,6 +247,7 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - Fresh dynamic queue (`dq2.log`, fallback `final-best`); liveness paused; `final-best-run1/` keeps the verified final results.
 - **`sr_finalize.sh` re-armed with STOP_AT=1048**: it restores the labels in `final-labels.txt` (still b1-best + b1-idxsplit; append `f-gmu82` or `f-noexpseg` only if it wins, with at least ~12 GB available on every rank), re-runs `sr_final`, the needle and liveness. The best config is back and verified by about 11:00 either way.
 - Compare the f-* screens with `b1-idxsplit` (the same config under SCREEN).
+- **10:43 re-finalize** (triggered early with `finalize.now` after the queue emptied at 10:42): labels b1-best + b1-idxsplit + f-noexpseg, best go script written with 8 export lines (adds `expandable_segments:False`), restore started. `final-best-run1/` holds the 10:05 final's results; `final-best/` will hold this run's.
 
 ## UNATTENDED FINALIZER (armed 08:30, `/root/sr_finalize.sh`, status `finalize.status`, log `finalize.log`)
 - At 09:55 UTC it sets `queue.stop`, waits for the running label, then builds the final go script from **`/var/tmp/boot-results/speedrun/final-labels.txt`** (now: `b1-best`; add winning `b1-*` labels on new lines, b1-best first; several labels are merged by `sr_combo.sh`).
