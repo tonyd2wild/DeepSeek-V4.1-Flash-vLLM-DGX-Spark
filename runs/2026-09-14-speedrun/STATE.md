@@ -235,6 +235,8 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - Then `sr_final.sh final-best` (full C1-C6, prefill 2K-64K, vision/tools, quality), a 131K needle, and `liveness.sh` (log only).
 - To finalize early: `touch /var/tmp/boot-results/speedrun/finalize.now`. To cancel: kill the `^bash /root/sr_finalize.sh` process from a script file (pgrep gotcha).
 - `asusi:~/exl3tp4b-ablit-best-go.sh` = `sr-b1-best-go.sh` since 08:28 (md5 3c124022).
+- `final-labels.txt` = b1-best, b1-idxsplit since 08:43. Dry run `sr_combo.sh zz-final-test b1-best b1-idxsplit` OK: IMAGE exl3b-roce, PATCH sr2roce, 128 threads, RoCE env, `DSV41_INDEXER_TP_SPLIT=1`, bash -n OK.
+- **Context rule for the final:** even if b1-ctx1m boots and passes its 512K needle, the final stays at 300K. Tony's standing instruction (2026-09-10) is to prove 1M and then serve 300K. A 1M result is reported as a proven capability only.
 
 ## 07:59 rebase: the b1 ladder (`/root/mk_b1.sh`)
 - **b1** = E02 (ch8 + Engram fast) + E09 (`ENGRAM_THREADS=128`) + E19 (RoCE, image `exl3b-roce`, patch set `dsv41-exl3-sr1roce`). Every `b1-*` label is b1 plus ONE change.
