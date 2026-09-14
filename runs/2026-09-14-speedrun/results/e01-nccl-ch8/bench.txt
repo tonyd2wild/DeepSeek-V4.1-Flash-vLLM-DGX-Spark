@@ -1,0 +1,54 @@
+[e01-nccl-ch8] warmup
+  C1 coding        agg   80.09 tok/s  per-stream 85.4  ttft 0.166s
+  C1 json          agg   65.93 tok/s  per-stream 72.52  ttft 0.177s
+  C1 narrative     agg   30.33 tok/s  per-stream 31.74  ttft 0.235s
+  C1 prose         agg   34.71 tok/s  per-stream 36.5  ttft 0.196s
+  C1 math          agg   75.45 tok/s  per-stream 82.91  ttft 0.223s
+  C1 reasoning     agg   66.56 tok/s  per-stream 71.53  ttft 0.222s
+  C1 summary       agg   30.94 tok/s  per-stream 34.37  ttft 0.412s
+  C1 format        agg   75.33 tok/s  per-stream 88.69  ttft 0.238s
+  C1 ceiling_count agg   94.82 tok/s  per-stream 102.43  ttft 0.196s
+  C3 coding        agg  184.21 tok/s  per-stream 66.69  ttft 0.248s
+  C3 json          agg  142.10 tok/s  per-stream 54.89  ttft 0.276s
+  C3 narrative     agg   59.28 tok/s  per-stream 21.94  ttft 0.241s
+  C3 prose         agg   78.06 tok/s  per-stream 28.15  ttft 0.223s
+  C3 math          agg  157.58 tok/s  per-stream 57.85  ttft 0.278s
+  C3 reasoning     agg  106.74 tok/s  per-stream 40.54  ttft 0.288s
+  C3 summary       agg   59.23 tok/s  per-stream 25.12  ttft 0.631s
+  C3 format        agg  151.33 tok/s  per-stream 61.48  ttft 0.302s
+  C3 ceiling_count agg  223.34 tok/s  per-stream 79.31  ttft 0.208s
+  C6 coding        agg  291.13 tok/s  per-stream 53.47  ttft 0.322s
+  C6 json          agg  155.85 tok/s  per-stream 34.92  ttft 0.486s
+  C6 narrative     agg   84.95 tok/s  per-stream 15.66  ttft 0.276s
+  C6 prose         agg  111.85 tok/s  per-stream 20.65  ttft 0.267s
+  C6 math          agg  273.95 tok/s  per-stream 50.76  ttft 0.353s
+  C6 reasoning     agg  196.10 tok/s  per-stream 37.32  ttft 0.357s
+  C6 summary       agg   89.07 tok/s  per-stream 20.01  ttft 1.015s
+  C6 format        agg  270.76 tok/s  per-stream 56.56  ttft 0.406s
+  C6 ceiling_count agg  384.20 tok/s  per-stream 68.59  ttft 0.26s
+  prefill   8000: {'target': 8000, 'prompt_tokens': 11592, 'ttft_s': 9.067, 'prefill_tok_s': 1278.5}
+  prefill  32000: {'target': 32000, 'prompt_tokens': 46810, 'ttft_s': 31.51, 'prefill_tok_s': 1485.5}
+Prompt set `v1` (identical across boots), temperature 0, thinking off. Tokens from the server's usage block; TTFT = first token delta.
+
+### Throughput by concurrency (8 categories; the counting ceiling is excluded)
+
+| C | aggregate tok/s | per-stream tok/s | mean TTFT (s) |
+|---|---|---|---|
+| C1 | 57.42 | 62.96 | 0.234 |
+| C3 | 117.32 | 44.58 | 0.311 |
+| C6 | 184.21 | 36.17 | 0.435 |
+
+### Per-stream tok/s by category
+
+| category | C1 | C3 | C6 |
+|---|---|---|---|
+| coding | 85.4 | 66.69 | 53.47 |
+| json | 72.52 | 54.89 | 34.92 |
+| narrative | 31.74 | 21.94 | 15.66 |
+| prose | 36.5 | 28.15 | 20.65 |
+| math | 82.91 | 57.85 | 50.76 |
+| reasoning | 71.53 | 40.54 | 37.32 |
+| summary | 34.37 | 25.12 | 20.01 |
+| format | 88.69 | 61.48 | 56.56 |
+| ceiling_count | 102.43 | 79.31 | 68.59 |
+wrote /var/tmp/boot-results/speedrun/e01-nccl-ch8/bench-e01-nccl-ch8.json and .md

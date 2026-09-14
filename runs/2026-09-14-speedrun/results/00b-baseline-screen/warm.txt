@@ -1,0 +1,17 @@
+[00b-baseline-screen-warm] warmup
+  C1 coding        agg   75.54 tok/s  per-stream 82.37  ttft 0.231s
+  C1 json          agg   58.54 tok/s  per-stream 63.97  ttft 0.199s
+  C1 narrative     agg   30.35 tok/s  per-stream 31.54  ttft 0.226s
+  C1 prose         agg   33.91 tok/s  per-stream 35.78  ttft 0.222s
+  C1 math          agg   67.70 tok/s  per-stream 74.56  ttft 0.258s
+  C1 reasoning     agg   64.82 tok/s  per-stream 70.32  ttft 0.254s
+  C1 summary       agg   30.31 tok/s  per-stream 34.58  ttft 0.497s
+  C1 format        agg   67.49 tok/s  per-stream 81.96  ttft 0.286s
+  C1 ceiling_count agg   90.47 tok/s  per-stream 97.36  ttft 0.196s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/00b-baseline-screen/warm/bench-00b-baseline-screen-warm.json'

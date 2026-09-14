@@ -43,9 +43,86 @@ Owner: Tony (asleep). Operator: Claude (this session). This file is the source o
 3. Screen: `v41bench.py --levels 1,3,6 --prefill 8000,32000` → `results/NN-name/`.
 4. Compare with the baseline's own SCREEN run (same protocol) using `bench_report.py --vs`.
 
+## Measured levers from bot-lab-21's HF card (DSV4.1 EXL3 on 4 Sparks, recipe built on our repo)
+- `--async-scheduling`: per-stream C1 62.2→68.0 (+9%), C6 −3%.
+- `NCCL_MAX_NCHANNELS=8`: C6 178.6→199.0 (+11%); prefill at 47K 1323→1423.
+- Force the b12x MXFP8 dense kernel via `VLLM_DISABLED_KERNELS=FlashInferCutedslMxfp8LinearKernel,FlashInferCutlassMxfp8LinearKernel,MarlinMxfp8LinearKernel`: C6 +3.7%.
+- b12x RoCE one-shot all-reduce (`ROCE=1`, 2 MB): C1 +5.5%. Needs the b12x package (checking).
+- Rejected on their ladder: `NCCL_PROTO=^LL128` and the BUFFSIZE settings, `ENGRAM_THREADS=64`, resident Engram rows, `NCCL_NTHREADS=256`.
+- The EXL3 MoE path is near the bandwidth floor. The only waste is the torch clamp fallback (0.5-3 ms/step), fixed by a kernel rebuild (optional, later).
+
+## Queue (one change per boot, stacked on the best so far)
+1. E01 `NCCL_MAX_NCHANNELS=8` (`sr-e01-nccl-ch8-go.sh`). Queued to boot after the probe (task bk49942qq).
+2. E02 + `--async-scheduling`: `sr-e02a-ch8-async-go.sh` if E01 wins, else `sr-e02b-async-go.sh`.
+3. E03 + b12x MXFP8 dense via VLLM_DISABLED_KERNELS (if b12x can be picked).
+4. Prefill levers (pending the prefill agent and probe): long-prefill threshold, shared-expert stream threshold, max_num_batched_tokens.
+5. DSpark k (pending the DSpark agent).
+
+## Credits (Tony: credit everyone whose work we use; carry this into the run README and the main README)
+- **bot-lab-21:** EXL3 3.5 bpw Pollard checkpoint and HF tuning ladder: NCCL_MAX_NCHANNELS=8, async scheduling, b12x DISABLED_KERNELS, the clamped-SwiGLU exl3_moe.py overlay.
+- **Zeuss5/cuda-exl3** (and collaborator @NNNtrance): the EXL3 CUDA plugin and its perf studies.
+- **MiaAI-Lab/DeepSeek-v4.1-Flash-DGX-Sparks** (SGLang recipe): NCCL settings, the b12x MXFP8 idea, prefill numbers.
+- **im0xMagnus:** PRs #3-#5 (vLLM commit pin, diffs, verify5), the 8x-Spark fork, issue #1 data.
+- **ecohash-co and hyudryu:** the issue #2 bisect (expandable_segments finding).
+- **tmolteno:** issue #1 data.
+- **antheas/spark_hwmon:** a lead, not used.
+- **vLLM team:** dsv41-feat. **Kai:** the original Engram-on-disk and SM12x page patches.
+
+## Tony's direction 06:21 UTC
+- SGLang is allowed if it's better ("vLLM or SGLang, do whatever is BEST").
+- Caveat: the uncensored model is EXL3 (vLLM plugin). Tonight: port SGLang's ideas into vLLM; write up the SGLang option with numbers.
+
+## Agent findings (all in)
+- **vLLM engine:** async scheduling is auto-on (skip E02-async). `--enable-batch-sharded-sampling` is small at C2+. wo_a runs a BF16 bmm via Emulation (2x bytes; code patch). The Engram host sync cuts the async overlap every step.
+- **Prefill:**
+  - The indexer is replicated on every rank; splitting it is a big code patch (93K 78→52 s est.).
+  - Engram staging is 5-20% of prefill by estimate. The probe shows GPU util only 54% during a 39.6K prefill (1,671 tok/s), so host work is bigger than that estimate.
+  - `DSV41_ENGRAM_DISK_CHUNK=256` is restart-only.
+  - Prefix caching is ON (hits on 128-token boundaries), which helps multi-turn TTFT.
+  - Capture sizes >48 would help short-prompt TTFT, but padding risks #5015.
+- **DSpark:** k=6-9 are rejected; k=10 is allowed (a gamble: code could gain a lot, prose loses 10-20%). At temp 0 the sampling method is irrelevant; adaptive verification is blocked.
+- **b12x:** installed as image `vllm-dsv41:exl3b` (exl3a + b12x 1.3.0) on Spark4, Asusi and Bluey; Reddie is rebuilding. The CUDA MXFP8 list order is Cutedsl, Cutlass, Marlin, B12x, so disabling the first three picks B12x.
+- **Engram fast path (my patch, set `dsv41-exl3-sr1`, env `DSV41_ENGRAM_FAST=1`):** numpy memmap gather (no per-row Python preadv loop, threads without the GIL), raw fp8 rows to the GPU, dequant on the GPU (bit-exact math), no bf16 pinned copy.
+
+## Engram fast path: offline test on Bluey (CPU, node-local rows, layer 1 rank 3)
+- Bit-identical to the preadv path at 288 and 98,304 rows (random rows, duplicates, unowned rows): PASS in 4 runs.
+- Timing, CPU dequant in the test (the patch dequantizes on the GPU):
+
+  | gather rows per task | 288 rows cold / warm | 98,304 rows cold / warm |
+  |---|---|---|
+  | 16 | 6.4 / 1.8 ms | 618 / 79 ms |
+  | 128 | 42.5 / 1.2 ms | 372 / 27 ms |
+  | 1024 | 46.8 / 0.9 ms | **311 / 17 ms** |
+  | old preadv path | 4.2 / 3.5-6.1 ms | 589-655 / 355-486 ms |
+
+- Final patch: auto rows per task = ceil(n/32) clamped to [16, 1024]. `engram.py` md5 is in the chain log. Staged in `~/patches/dsv41-exl3-sr1` on all 4 nodes.
+
+## Decisions
+- **cuda-exl3 clamp fix: SKIPPED.**
+  - `had128_warp_glu_in` reads gate/up from global memory and lives in `exl3_had.cuh`, which isn't in the installed package.
+  - A fused clamp without editing that header saves only 2 graph launches per layer (~0.1-0.2 ms/step), not worth a 4-node rebuild.
+- **Plan after E02:** E03, E04 and E05 each add ONE change on top of E02 (clean A/B vs a common base):
+  - E03: b12x image with MXFP8 forced to b12x;
+  - E04: `--enable-batch-sharded-sampling`;
+  - E05: `SPEC_K=10`.
+  - The final config is E02 plus the winners, validated with a full C1-C6 bench on a final boot.
+- **Quality gate** (`sr_quality.py`, inside `sr_screen.sh` from E02 on): count 1..100, JSON keys, runnable `is_prime` code, 17*23, prose not degenerate. A config that fails the gate cannot win.
+
+## PR pre-checks (done early, to post at 11:00 UTC)
+- **PR #4:** applies cleanly to main. Its `patch/verify_diffs.sh`, run against a local vLLM checkout at `e47aa780b` (`scratchpad/vllm-e47`), passes 7/7 full diffs and 4/4 per-fix chains. Merge at 11:00.
+- **PR #5:** `verify5.py` compiles, and the logic matches hyudryu's report. It includes a stray `build/__pycache__/verify5.cpython-314.pyc`: merge it, then remove the pyc and add `__pycache__/` to `.gitignore` in a follow-up commit.
+- Drafts are in `DRAFT-issue-pr-replies.md`. Re-read every thread for new comments before posting.
+
+## Runner notes
+- Chains run DETACHED on Reddie (`setsid nohup`), so they survive losing the Tailscale connection.
+- `/root/sr_chain_e02.sh`: waits for E01, then runs E02 (`sr-e02-ch8-fast-go.sh`: ch8 plus `PATCH_NAME=dsv41-exl3-sr1` plus `DSV41_ENGRAM_FAST=1`), and runs the offline test (auto chunk) during E02's load → `test-fast-auto.txt`.
+- Status files: `/var/tmp/boot-results/speedrun/run-<label>.status`, `chain-e02.log`.
+
 ## Experiment log
 | # | change | boot | KV | C1 agg | C3 agg | C6 agg | code C1 | prefill 32K | verdict |
 |---|---|---|---|---|---|---|---|---|---|
+| 00b | baseline SCREEN (as found, warm) | - | 3,274,912 | 54.3 | 114.8 | 166.3 | 80.6 | 1,454 (full-bench cold) | reference |
+| E01 | `NCCL_MAX_NCHANNELS=8` | 8.7 min, OK | 3,512,346 (+7.3%) | 57.4 (+5.8%) | 117.3 (+2.2%) | 184.2 (+10.7%) | 85.4 (+5.9%) | 1,486 (+2%) | **KEEP** (bot-lab-21 saw +11% C6) |
 
 ## Findings so far
 - **Baseline idle test** (06:07 UTC), after the first token:

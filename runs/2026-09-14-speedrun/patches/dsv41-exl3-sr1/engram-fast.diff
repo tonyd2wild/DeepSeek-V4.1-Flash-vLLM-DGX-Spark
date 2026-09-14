@@ -1,0 +1,151 @@
+--- dsv41-exl3-tp3e/engram.py	2026-09-11 14:36:05
++++ dsv41-exl3-sr1/engram.py	2026-09-14 02:28:47
+@@ -633,6 +633,42 @@
+ # 24 serial ones (measured on Reddie: 7.7 ms serial vs 3.1 ms parallel, C1).
+ _KAI_THREADS = int(_kai_os.environ.get("DSV41_ENGRAM_DISK_THREADS", "32"))
+ _KAI_CHUNK = int(_kai_os.environ.get("DSV41_ENGRAM_DISK_CHUNK", "16"))
++
++# --- Speed run 2026-09-14 (Claude for Tony / Tech2Wild): Engram FAST staging, DSV41_ENGRAM_FAST=1.
++# The disk path reads every row with a Python preadv loop on the thread pool (GIL-bound at prefill:
++# ~100K rows per 8192-token chunk) and dequantizes on the CPU. The fast path gathers the
++# de-duplicated rows with numpy fancy indexing over a read-only memmap of the same bytes (the C
++# loop releases the GIL, so large gathers run on the pool in parallel), ships the raw fp8 rows and
++# ue8m0 scales to the GPU, and dequantizes there with the same fp32 math, so the staged bf16 rows
++# are bit-identical to the CPU path.
++_DSV41_ENGRAM_FAST = _kai_os.environ.get("DSV41_ENGRAM_FAST", "0") == "1"
++_FAST_GATHER_ROWS = int(_kai_os.environ.get("DSV41_ENGRAM_FAST_GATHER_ROWS", "0"))  # 0 = auto
++
++
++def _fast_gather(mm: np.ndarray, idx: np.ndarray, out: np.ndarray, tasks: list) -> None:
++    """out[i] = mm[idx[i]] (row gather), split over the shared pool so cold rows fault in
++    parallel. Rows per task: ceil(n / threads) clamped to [16, 1024] unless
++    DSV41_ENGRAM_FAST_GATHER_ROWS is set. Measured on GB10 (Bluey, node-local rows):
++    288 rows 6 ms cold / 2 ms warm (16/task), 98,304 rows 311 ms cold / 17 ms warm
++    (1024/task), against 4 / 4 ms and 589 / 486 ms for the preadv path."""
++    n = idx.shape[0]
++    step = _FAST_GATHER_ROWS or min(1024, max(16, -(-n // _KAI_THREADS)))
++    if n <= step:
++        np.take(mm, idx, axis=0, out=out)
++        return
++    pool = _kai_pool()
++    for lo in range(0, n, step):
++        hi = min(lo + step, n)
++        tasks.append(pool.submit(np.take, mm, idx[lo:hi], 0, out[lo:hi]))
++
++
++def dequant_rows_torch(w: torch.Tensor, s: torch.Tensor, dim: int, sb: int) -> torch.Tensor:
++    """fp8 e4m3 rows (uint8 [U, dim]) x ue8m0 block scales (uint8 [U, sb]) -> [U, dim] fp32 on
++    the device w and s live on. Same math as DiskEngramTable.dequant."""
++    U = w.shape[0]
++    vals = w.view(torch.float8_e4m3fn).to(torch.float32).view(U, sb, dim // sb)
++    scale = (s.to(torch.int32) << 23).view(torch.float32)
++    return (vals * scale[:, :, None]).reshape(U, dim)
+ _KAI_POOL: _KaiPool | None = None
+ 
+ 
+@@ -734,6 +770,9 @@
+         sname = f"layers.{layer_id}.engram.embed.scale"
+         self.w_fd, self.w_off, self.w_shape = self._open(model_dir, weight_map[wname], wname)
+         self.s_fd, self.s_off, self.s_shape = self._open(model_dir, weight_map[sname], sname)
++        self.w_path = _kai_os.path.join(model_dir, weight_map[wname])
++        self.s_path = _kai_os.path.join(model_dir, weight_map[sname])
++        self._w_mm = self._s_mm = None
+         self.dim = dim
+         self.sb = dim // block_size
+         assert self.w_shape[1] == dim, (self.w_shape, dim)
+@@ -784,6 +823,22 @@
+             (self.w_fd, self.w_off, rel_l, self.dim, memoryview(w.numpy()).cast("B")),
+             (self.s_fd, self.s_off, rel_l, self.sb, memoryview(s.numpy()).cast("B")),
+         ]
++
++    def memmaps(self) -> tuple[np.ndarray, np.ndarray]:
++        """Read-only memmaps over this rank's rows (the same bytes the preads read):
++        weights [num_rows, dim] and scales [num_rows, sb], uint8. Used by the fast path."""
++        if self._w_mm is None:
++            import mmap as _mmap
++            self._w_mm = np.memmap(self.w_path, dtype=np.uint8, mode="r", offset=self.w_off,
++                                   shape=(self.num_rows, self.dim))
++            self._s_mm = np.memmap(self.s_path, dtype=np.uint8, mode="r", offset=self.s_off,
++                                   shape=(self.num_rows, self.sb))
++            for m in (self._w_mm, self._s_mm):
++                try:
++                    m._mmap.madvise(_mmap.MADV_RANDOM)
++                except Exception:  # noqa: BLE001
++                    pass
++        return self._w_mm, self._s_mm
+ 
+     def dequant(self, w: torch.Tensor, s: torch.Tensor) -> torch.Tensor:
+         """fp8 e4m3 rows (as uint8) x ue8m0 block scales -> [R, dim] fp32."""
+@@ -1352,6 +1407,21 @@
+         ]
+         self.hashes_ready = torch.cuda.Event()
+         self.num_staged = 0
++        self.fast = _DSV41_ENGRAM_FAST
++        if self.fast:
++            # Pinned raw-byte buffers per engram layer: unique rows <= max_tokens * local_heads.
++            max_rows = self.max_tokens * self.local_heads
++            self.raw_w, self.raw_s, self.inv_host, self.own_host = [], [], [], []
++            for e in self.engrams:
++                d = e.embed_tokens.disk
++                self.raw_w.append(torch.empty((max_rows, d.dim), dtype=torch.uint8, pin_memory=True))
++                self.raw_s.append(torch.empty((max_rows, d.sb), dtype=torch.uint8, pin_memory=True))
++                self.inv_host.append(torch.empty(max_rows, dtype=torch.int64, pin_memory=True))
++                self.own_host.append(torch.empty(max_rows, dtype=torch.bool, pin_memory=True))
++                d.memmaps()
++            logger.info("Engram FAST staging on (DSV41_ENGRAM_FAST=1): memmap row gather, "
++                        "GPU dequant, rows per gather task %s",
++                        _FAST_GATHER_ROWS or "auto (16-1024)")
+         logger.info(
+             "Engram DISK rows staged before the forward (graph-safe): %d layers, "
+             "heads [%d, %d) of %d, up to %d tokens/step, %d read threads",
+@@ -1402,6 +1472,10 @@
+             local = host[:, engram.layer_hash_index, :].to(torch.int64)
+             rel, owned = engram.embed_tokens.disk_rel_owned(local)
+             requests.append((engram.embed_tokens.disk, rel, owned))
++        if self.fast:
++            self._stage_fast(requests, n)
++            self.num_staged = n
++            return n
+         rows_per_layer = gather_dequant_many(requests)
+         for engram, rows, buf in zip(self.engrams, rows_per_layer, self.rows_host):
+             staged = buf[:n]
+@@ -1409,3 +1483,39 @@
+             engram.staged_rows[:n].copy_(staged, non_blocking=True)
+         self.num_staged = n
+         return n
++
++    def _stage_fast(self, requests: list, n: int) -> None:
++        """DSV41_ENGRAM_FAST=1: memmap gather of the unique rows into pinned raw buffers (large
++        gathers in parallel on the pool, outside the GIL), raw fp8 rows + scales to the GPU, GPU
++        dequant, index by the inverse map, zero rows this rank does not own, cast to bf16 into
++        staged_rows. Same math and order as gather_dequant_many + the CPU copy, on the stream
++        the forward runs on; the next step's hashes_ready.synchronize() orders the reuse of the
++        pinned buffers after these async copies."""
++        tasks: list = []
++        plans = []
++        for li, (table, rel, owned) in enumerate(requests):
++            uniq, inverse = torch.unique(rel, return_inverse=True)
++            U = uniq.numel()
++            w_mm, s_mm = table.memmaps()
++            idx = uniq.numpy()
++            _fast_gather(w_mm, idx, self.raw_w[li][:U].numpy(), tasks)
++            _fast_gather(s_mm, idx, self.raw_s[li][:U].numpy(), tasks)
++            plans.append((li, table, U, inverse, owned))
++        for t in tasks:
++            t.result()
++        L = self.local_heads
++        for li, table, U, inverse, owned in plans:
++            engram = self.engrams[li]
++            dev = engram.staged_rows.device
++            R = inverse.numel()
++            ih = self.inv_host[li][:R]
++            ih.copy_(inverse)
++            oh = self.own_host[li][:R]
++            oh.copy_(owned)
++            gw = self.raw_w[li][:U].to(dev, non_blocking=True)
++            gs = self.raw_s[li][:U].to(dev, non_blocking=True)
++            gi = ih.to(dev, non_blocking=True)
++            go = oh.to(dev, non_blocking=True)
++            rows = dequant_rows_torch(gw, gs, table.dim, table.sb).index_select(0, gi)
++            rows.masked_fill_(~go[:, None], 0.0)
++            engram.staged_rows[:n].copy_(rows.view(n, L, table.dim))

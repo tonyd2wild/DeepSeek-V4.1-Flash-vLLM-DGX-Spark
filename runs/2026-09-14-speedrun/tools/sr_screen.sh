@@ -11,6 +11,7 @@ docker logs vllm_dsv41 2>&1 | grep -E "GPU KV cache size|Available KV cache|Mode
 docker inspect vllm_dsv41 --format '{{json .Args}}' > $O/args.json
 docker inspect vllm_dsv41 --format '{{range .Config.Env}}{{println .}}{{end}}' | grep -E "NCCL|VLLM|PYTORCH|DSV41|CUDA_EXL3|TORCH" > $O/env.txt
 python3 /root/idletest.py > $O/idletest.txt 2>&1
+python3 /root/sr_quality.py $O > $O/quality.txt 2>&1; cat $O/quality.txt
 python3 /root/v41bench.py --base http://127.0.0.1:8000/v1 --model deepseek-v4.1-flash --label $LBL-warm --out $O/warm --levels 1 --prefill "" > $O/warm.txt 2>&1 || true
 python3 /root/v41bench.py --base http://127.0.0.1:8000/v1 --model deepseek-v4.1-flash --label $LBL --out $O --levels $LV --prefill $PF --notes "speed run 2026-09-14 SCREEN $LBL" > $O/bench.txt 2>&1
 echo "bench exit $? $(date -u +%T)"
