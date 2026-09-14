@@ -26,6 +26,20 @@ Built by `patches/make_sglang_disk_patch.py` from the image's own files with anc
 - **0xSero** ([deepseek-v4.1-flash-4x-rtx-pro-6000](https://github.com/0xSero/deepseek-v4.1-flash-4x-rtx-pro-6000), MIT): the Engram-on-NVMe idea and the SM12x extra-KV and indexer-metadata issues our fixes address. Our code is original.
 - **Kai (Tech2Wild):** the original Engram-on-disk design and the uncensored overlay.
 
+## Memory setting (`--mem-fraction-static`, the gmu equivalent)
+
+**Stable default: 0.80** (Tony, 2026-09-14). At 0.80 each GPU holds weights 75.3 GB, the DSpark drafter 3.8 GB and 11.49 GB of KV (7,012,096 tokens at 1,670.75 bytes per token), with 15.6 GB free after CUDA graphs for prefill scratch, NCCL, the OS and the Engram buffers.
+
+**More-context levers** (estimates from the per-token cost, not yet measured; test each with a ~300K-token prompt before serving it, since long-prompt prefill scratch is what the free memory is for):
+
+| `--mem-fraction-static` | KV pool (est.) | free after graphs (est.) | status |
+|---|---|---|---|
+| 0.80 | 7.0M tokens (measured) | 15.6 GB (measured) | **stable default** |
+| 0.82 | ~8.5M tokens | ~13 GB | lever, untested |
+| 0.85 | ~10.7M tokens | ~9.4 GB | lever, untested; tight for 300K prompts |
+
+Set it with `MEMFRAC=0.82` (or `0.85`) in the environment of `/root/sg_up.sh`.
+
 ## Results so far
 
 - **KV pool: 7,748,608 tokens** at memory fraction 0.80 (SGLang's own log: 1,670.75 bytes per token per GPU, 12.64 GB for KV), about 2.06x the vLLM lane's 3,757,748 on the same four Sparks. Measured on boot `sg2` before it failed.
