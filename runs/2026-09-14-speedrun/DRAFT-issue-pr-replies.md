@@ -1,5 +1,9 @@
 # Drafts for the 11:00 UTC (7 AM ET) issue/PR pass. Re-read each thread for new comments before posting.
 
+Reviewed heads (10:08 UTC), all MERGEABLE, 1 commit each. Merge only if the head is unchanged:
+- PR #4 `9dc9d21ad011` (the sha koldfrontier verified), PR #5 `557df4ec43da`, PR #7 `42810ac1ed10`.
+- Order: #4, #5 (then a follow-up commit on main: `git rm --cached build/__pycache__/verify5.cpython-314.pyc` plus `__pycache__/` in `.gitignore`), #7. Then comment on #1, #2 and #6.
+
 ## Issue #1 (GB10 slow state), comment
 Update from a 2026-09-14 overnight run, plus thanks to @tmolteno and @im0xMagnus for the data points.
 - **Tonight's measurements:**
