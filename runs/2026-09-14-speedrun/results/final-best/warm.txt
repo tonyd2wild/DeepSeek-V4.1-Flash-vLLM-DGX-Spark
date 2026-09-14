@@ -1,0 +1,17 @@
+[final-best-warm] warmup
+  C1 coding        agg   83.65 tok/s  per-stream 90.33  ttft 0.187s
+  C1 json          agg   55.84 tok/s  per-stream 59.25  ttft 0.169s
+  C1 narrative     agg   31.85 tok/s  per-stream 33.04  ttft 0.184s
+  C1 prose         agg   39.92 tok/s  per-stream 41.97  ttft 0.183s
+  C1 math          agg   71.87 tok/s  per-stream 78.21  ttft 0.216s
+  C1 reasoning     agg   59.98 tok/s  per-stream 63.9  ttft 0.219s
+  C1 summary       agg   33.26 tok/s  per-stream 38.26  ttft 0.376s
+  C1 format        agg   72.05 tok/s  per-stream 84.83  ttft 0.231s
+  C1 ceiling_count agg   93.95 tok/s  per-stream 100.19  ttft 0.168s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/final-best/warm/bench-final-best-warm.json'

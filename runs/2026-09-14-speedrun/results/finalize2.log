@@ -1,0 +1,10 @@
+ARMED stop_at=1048 10:15:40
+QUEUE-STOP set 10:43:11
+QUEUE-IDLE (last run: f-noexpseg) 10:43:11
+FINAL-LABELS b1-best b1-idxsplit f-noexpseg  10:43:11
+BEST-GO written (8 export lines) 10:43:13
+SERVING final-best 10:51:56
+SR-FINAL done 10:58:34
+NEEDLE "pass": true  10:59:43
+LIVENESS started 10:59:43
+FINALIZE DONE 10:59:43

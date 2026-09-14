@@ -1,0 +1,7 @@
+start 10:52:09 UTC
+A count after idle: 200 tok, TTFT 0.14s, 117.6 tok/s after first token, 5.85 tok/step, step ms p50  49.5 (first10  48.6, last10  51.0) | 48 47 50 49 48 49 49 48 51 49 50 51 49 49 50 48 51 48 48 50 49 51 49 51 50 51 51 49 50 51 50 51 52 55
+B count back-to-back: 200 tok, TTFT 0.17s, 118.1 tok/s after first token, 5.85 tok/step, step ms p50  49.5 (first10  49.0, last10  50.4) | 48 48 49 51 49 50 48 49 51 49 50 51 48 50 47 47 51 49 48 48 50 48 50 48 49 55 48 50 50 52 49 51 50 53
+C code back-to-back: 220 tok, TTFT 0.19s,  93.2 tok/s after first token, 4.98 tok/step, step ms p50  52.2 (first10  52.7, last10  53.0) | 52 53 62 51 53 63 51 50 68 52 54 52 51 50 54 50 50 54 56 54 52 53 51 52 64 54 56 51 49 48 47 49 50 52 53 54 54 51 47 50 51 53 62 66
+idle 45s
+D count after idle: 200 tok, TTFT 0.14s, 116.5 tok/s after first token, 5.85 tok/step, step ms p50  50.5 (first10  50.8, last10  50.2) | 51 49 51 51 49 51 49 52 51 49 51 50 50 51 50 51 52 49 50 50 50 49 51 50 51 52 48 50 49 51 48 50 50 52
+E code back-to-back: 217 tok, TTFT 0.20s,  97.4 tok/s after first token, 5.14 tok/step, step ms p50  52.6 (first10  52.1, last10  53.4) | 50 53 52 51 54 52 52 53 50 53 54 50 55 51 54 54 53 54 53 53 66 52 52 66 53 50 50 49 49 49 51 50 53 54 57 53 50 49 49 55 53 55

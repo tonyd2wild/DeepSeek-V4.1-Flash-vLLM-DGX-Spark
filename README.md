@@ -1,5 +1,7 @@
 # DeepSeek-V4.1-Flash on four NVIDIA DGX Sparks (vLLM, TP4, DSpark, CUDA graphs)
 
+> **Speed run, 2026-09-14 ([runs/2026-09-14-speedrun](runs/2026-09-14-speedrun/README.md)):** the uncensored build (EXL3-Pollard-Abliterated) now serves on `exl3tp4b-ablit-best`. Against the same lane's baseline on the same full bench: six-stream throughput 189.97 tok/s (+13.3%), C2-C6 throughput +9 to +13%, cold prefill about 2,000 tok/s (+34 to +38%), TTFT 0.22 s at one stream (-20%), KV pool 3,757,748 tokens (+14.7%), and 1M context proven on the same stack. The levers: b12x RoCE one-shot all-reduce (@original-el8, @lukealonso), Engram fast staging and 128 read threads, an indexer prefill TP-split, `NCCL_MAX_NCHANNELS=8` (bot-lab-21) and `expandable_segments:False` (ecohash-co). Restore it with `bash /root/restore_exl3tp4b_ablit_best.sh` on Reddie as root.
+
 > **Default serving config since 2026-09-11: the TP4 EXL3 context lane (`exl3tp4b`)**, the same four Sparks on the EXL3 3.5 bpw checkpoint with a 3,304,863-token KV pool. Restore it with `bash /root/restore_exl3tp4b.sh` on Reddie as root. Boot 10, documented below, is the release-checkpoint fallback: `bash /root/restore_boot10.sh`.
 
 **Status (2026-09-10): serving (boot 10).**

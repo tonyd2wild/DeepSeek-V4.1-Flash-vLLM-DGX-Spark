@@ -1,5 +1,7 @@
 # Drafts for the 11:00 UTC (7 AM ET) issue/PR pass. Re-read each thread for new comments before posting.
 
+**POSTED 11:01-11:02 UTC.** PRs #4, #5, #7 merged with comments; follow-up commit 5d076c8 for the #5 .pyc; comments on issues #1, #2, #6 (the #1 text was revised to include the first-request caveat from the idle-test data). The texts below are the drafts; the posted versions are on GitHub.
+
 Reviewed heads (10:08 UTC), all MERGEABLE, 1 commit each. Merge only if the head is unchanged:
 - PR #4 `9dc9d21ad011` (the sha koldfrontier verified), PR #5 `557df4ec43da`, PR #7 `42810ac1ed10`.
 - Order: #4, #5 (then a follow-up commit on main: `git rm --cached build/__pycache__/verify5.cpython-314.pyc` plus `__pycache__/` in `.gitignore`), #7. Then comment on #1, #2 and #6.

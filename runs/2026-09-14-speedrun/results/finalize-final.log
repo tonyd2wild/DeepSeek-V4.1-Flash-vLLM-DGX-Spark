@@ -1,12 +1,12 @@
-=== sr_final final-best 10:05:00
+=== sr_final final-best 10:51:56
 summary: 7/7 PASS
 QUALITY PASS {'count': True, 'json': True, 'code': True, 'math': True, 'prose': True}
-bench exit 0 10:11:34
-GPU KV cache size: 3,615,772 tokens, Maximum concurrency for 300,000 tokens per request: 12.05x
-  prefill   2000: {'target': 2000, 'prompt_tokens': 2950, 'ttft_s': 1.6, 'prefill_tok_s': 1844.2}
-  prefill   8000: {'target': 8000, 'prompt_tokens': 11592, 'ttft_s': 5.823, 'prefill_tok_s': 1990.7}
-  prefill  32000: {'target': 32000, 'prompt_tokens': 46810, 'ttft_s': 23.304, 'prefill_tok_s': 2008.7}
-  prefill  64000: {'target': 64000, 'prompt_tokens': 93335, 'ttft_s': 46.181, 'prefill_tok_s': 2021.1}
+bench exit 0 10:58:34
+GPU KV cache size: 3,757,748 tokens, Maximum concurrency for 300,000 tokens per request: 12.53x
+  prefill   2000: {'target': 2000, 'prompt_tokens': 2950, 'ttft_s': 1.607, 'prefill_tok_s': 1836.1}
+  prefill   8000: {'target': 8000, 'prompt_tokens': 11592, 'ttft_s': 5.804, 'prefill_tok_s': 1997.3}
+  prefill  32000: {'target': 32000, 'prompt_tokens': 46810, 'ttft_s': 23.238, 'prefill_tok_s': 2014.4}
+  prefill  64000: {'target': 64000, 'prompt_tokens': 93335, 'ttft_s': 45.923, 'prefill_tok_s': 2032.4}
 ### Throughput by concurrency (8 categories; the counting ceiling is excluded)
 
-=== sr_final final-best done 10:11:34
+=== sr_final final-best done 10:58:34

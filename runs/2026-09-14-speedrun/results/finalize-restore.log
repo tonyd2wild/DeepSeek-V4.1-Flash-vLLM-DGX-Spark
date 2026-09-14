@@ -1,30 +1,30 @@
-=== restore exl3tp4b-ablit BEST (exl3tp4b-ablit-best-go.sh) 09:56:10 (log /var/tmp/restore-exl3tp4b-ablit-best-20260914T095610Z.log)
-== stop before-restore-best-09140956 on all 4 (TP3 head Bluey first) 09:56:10
+=== restore exl3tp4b-ablit BEST (exl3tp4b-ablit-best-go.sh) 10:43:13 (log /var/tmp/restore-exl3tp4b-ablit-best-20260914T104313Z.log)
+== stop before-restore-best-09141043 on all 4 (TP3 head Bluey first) 10:43:13
   spark-3977 exited exit=0
   gx10-2f59 exited exit=0
   spark-9de7 exited exit=0
   gx10-25b7 exited exit=0
 == node checks
-gx10-2f59 up up 1 day, 2 hours, 15 minutes
+gx10-2f59 up up 1 day, 3 hours, 2 minutes
   NFS model OK
   engram rows: :{"1":[192001740,288003654],"14":[192007016,288011564]},"created":"2026-09-10T15:46:44Z","n
   image exl3a OK
   patch set tp3e OK
   launcher OK
   MemAvailable 116 GiB
-spark-9de7 up up 1 day, 2 hours, 16 minutes
+spark-9de7 up up 1 day, 3 hours, 3 minutes
   image exl3a OK
   patch set tp3e OK
   launcher OK
   MemAvailable 116 GiB
-spark-3977 up up 1 day, 2 hours, 16 minutes
+spark-3977 up up 1 day, 3 hours, 3 minutes
   NFS model OK
   engram rows: :{"1":[288003654,384006168],"14":[288011564,384016682]},"created":"2026-09-10T15:46:44Z","n
   image exl3a OK
   patch set tp3e OK
   launcher OK
   MemAvailable 116 GiB
-gx10-25b7 up up 1 day, 2 hours, 15 minutes
+gx10-25b7 up up 1 day, 3 hours, 2 minutes
   NFS model OK
   engram rows: :{"1":[96000564,192001740],"14":[96003054,192007016]},"created":"2026-09-10T15:47:11Z","not
   image exl3a OK
@@ -32,67 +32,67 @@ gx10-25b7 up up 1 day, 2 hours, 15 minutes
   launcher OK
   MemAvailable 116 GiB
 == burn (healthy 75-90 TFLOPS)
-  reddie TFLOPS 86.3 under load: 2197 MHz, 92.27 W  
-  asusi TFLOPS 90.3 under load: 2210 MHz, 90.18 W  
-  bluey TFLOPS 88.0 under load: 2164 MHz, 87.07 W  
-  spark4 TFLOPS 89.5 under load: 2255 MHz, 92.75 W  
+  reddie TFLOPS 86.0 under load: 2249 MHz, 93.45 W  
+  asusi TFLOPS 90.7 under load: 2242 MHz, 92.81 W  
+  bluey TFLOPS 89.1 under load: 2171 MHz, 88.53 W  
+  spark4 TFLOPS 90.1 under load: 2294 MHz, 93.42 W  
 == sidecars
-09:57:24 flusher2 start limit=4GiB droppable
-09:57:25 flusher2 start limit=4GiB droppable
-09:57:27 flusher2 start limit=4GiB droppable
-09:57:28 memguard4 start limit=5GiB
-== launch 09:57:29
-exl3tp4b-ablit go 2026-09-14T09:57:29Z head=reddie patch=dsv41-exl3-tp3e model=DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated gmu=0.80 maxlen=300000 eager=0 spec=dspark k=5 text_only=0
+10:44:20 flusher2 start limit=4GiB droppable
+10:44:21 flusher2 start limit=4GiB droppable
+10:44:23 flusher2 start limit=4GiB droppable
+10:44:24 memguard4 start limit=5GiB
+== launch 10:44:25
+exl3tp4b-ablit go 2026-09-14T10:44:25Z head=reddie patch=dsv41-exl3-tp3e model=DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated gmu=0.80 maxlen=300000 eager=0 spec=dspark k=5 text_only=0
 speedrun final-best overrides applied
-knobs: EXP_NAME='exl3tp4b-ablit' GMU='0.80' MAXLEN='300000' SEQS='8' EAGER='0' CUDAGRAPH_MODE='FULL_AND_PIECEWISE' SPEC='dspark' SPEC_K='5' IMAGE='vllm-dsv41:exl3b-roce' MODEL_DIR='DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated' ENGRAM_LOCAL_HOST='/var/tmp/engram-local/DeepSeek-V4.1-Flash' ENGRAM_DISK='1' ENGRAM_THREADS='128' ENGRAM_LOCAL='1' PATCH_NAME='dsv41-exl3-sr2roce' TEXT_ONLY='0' THINKING='false' PARSERS='1' RUST_FE='0' VLLM_EXTRA='--block-size 128 --limit-mm-per-prompt {"image":4} --mm-processor-cache-gb 1' NCCL_EXTRA='-e MAX_JOBS=2 -e FLASHINFER_NVCC_THREADS=1 -e VLLM_USE_FLASHINFER_SAMPLER=0 -e TILELANG_CACHE_DIR=/cache/tilelang -e TRITON_CACHE_DIR=/cache/triton -e NCCL_MAX_NCHANNELS=8 -e DSV41_ENGRAM_FAST=1 -e VLLM_ENABLE_ROCE_ALLREDUCE=1 -e VLLM_ROCE_ALLREDUCE_MAX_SIZE=2MB -e VLLM_ROCE_ALLGATHER_MAX_SIZE=16MB -e VLLM_ROCE_ALLGATHER_ENABLE=1 -e B12X_ROCE_HCA=rocep1s0f0 -e B12X_ROCE_GID_INDEX=3 -e B12X_ROCE_SPIN_LIMIT=300000000 -e B12X_ROCE_CACHE_DIR=/opt/b12x-roce/cache -e NCCL_MAX_NCHANNELS=8 -e DSV41_ENGRAM_FAST=1 -e VLLM_ENABLE_ROCE_ALLREDUCE=1 -e VLLM_ROCE_ALLREDUCE_MAX_SIZE=2MB -e VLLM_ROCE_ALLGATHER_MAX_SIZE=16MB -e VLLM_ROCE_ALLGATHER_ENABLE=1 -e B12X_ROCE_HCA=rocep1s0f0 -e B12X_ROCE_GID_INDEX=3 -e B12X_ROCE_SPIN_LIMIT=300000000 -e B12X_ROCE_CACHE_DIR=/opt/b12x-roce/cache -e DSV41_INDEXER_TP_SPLIT=1'
+knobs: EXP_NAME='exl3tp4b-ablit' GMU='0.80' MAXLEN='300000' SEQS='8' EAGER='0' CUDAGRAPH_MODE='FULL_AND_PIECEWISE' SPEC='dspark' SPEC_K='5' IMAGE='vllm-dsv41:exl3b-roce' MODEL_DIR='DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated' ENGRAM_LOCAL_HOST='/var/tmp/engram-local/DeepSeek-V4.1-Flash' ENGRAM_DISK='1' ENGRAM_THREADS='128' ENGRAM_LOCAL='1' PATCH_NAME='dsv41-exl3-sr2roce' TEXT_ONLY='0' THINKING='false' PARSERS='1' RUST_FE='0' VLLM_EXTRA='--block-size 128 --limit-mm-per-prompt {"image":4} --mm-processor-cache-gb 1' NCCL_EXTRA='-e MAX_JOBS=2 -e FLASHINFER_NVCC_THREADS=1 -e VLLM_USE_FLASHINFER_SAMPLER=0 -e TILELANG_CACHE_DIR=/cache/tilelang -e TRITON_CACHE_DIR=/cache/triton -e NCCL_MAX_NCHANNELS=8 -e DSV41_ENGRAM_FAST=1 -e VLLM_ENABLE_ROCE_ALLREDUCE=1 -e VLLM_ROCE_ALLREDUCE_MAX_SIZE=2MB -e VLLM_ROCE_ALLGATHER_MAX_SIZE=16MB -e VLLM_ROCE_ALLGATHER_ENABLE=1 -e B12X_ROCE_HCA=rocep1s0f0 -e B12X_ROCE_GID_INDEX=3 -e B12X_ROCE_SPIN_LIMIT=300000000 -e B12X_ROCE_CACHE_DIR=/opt/b12x-roce/cache -e NCCL_MAX_NCHANNELS=8 -e DSV41_ENGRAM_FAST=1 -e VLLM_ENABLE_ROCE_ALLREDUCE=1 -e VLLM_ROCE_ALLREDUCE_MAX_SIZE=2MB -e VLLM_ROCE_ALLGATHER_MAX_SIZE=16MB -e VLLM_ROCE_ALLGATHER_ENABLE=1 -e B12X_ROCE_HCA=rocep1s0f0 -e B12X_ROCE_GID_INDEX=3 -e B12X_ROCE_SPIN_LIMIT=300000000 -e B12X_ROCE_CACHE_DIR=/opt/b12x-roce/cache -e DSV41_INDEXER_TP_SPLIT=1 -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:False'
 == rank 3 Bluey ==
 vllm_dsv41
-8d0246c11b2ad9beab477e5dfee8c3992252eefecbbf924b79fe5ba1973625b0
+86ab2c4d598d78e9976209824ff6a95dfb813c9625db7e11d340d91648d23d18
 launched vllm_dsv41 rank=3 exp=exl3tp4b-ablit image=vllm-dsv41:exl3b-roce patches=/home/tonyspark1/patches/dsv41-exl3-sr2roce gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[5,6,10,12,15,18,20,24,25,30,35,36,40,42,48] spec=dspark adapt=false engram_disk=1 engram_local=yes text_only=0 avail=116GiB
 vllm_dsv41 Up 3 seconds
 == rank 2 Asusi ==
 vllm_dsv41
-719493647bc85d7c8fdd5d8106a8d2b4a0050b77318a17b7dc56ff4dbb7133ea
+3868728552a0df31122d731b8b06d36dc89f2b88b703d3e7f416ce5036c8f30a
 launched vllm_dsv41 rank=2 exp=exl3tp4b-ablit image=vllm-dsv41:exl3b-roce patches=/home/tonyspark3/patches/dsv41-exl3-sr2roce gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[5,6,10,12,15,18,20,24,25,30,35,36,40,42,48] spec=dspark adapt=false engram_disk=1 engram_local=yes text_only=0 avail=116GiB
 vllm_dsv41 Up 3 seconds
 == rank 1 Spark4 ==
 vllm_dsv41
-09d49c972793701b3d638bedf822ba2262098ac03752af5c9199539de9d35da8
+29cdf81e484bebfc05dc9216718c74bc518e8da6da9d425760422488c6568a7e
 launched vllm_dsv41 rank=1 exp=exl3tp4b-ablit image=vllm-dsv41:exl3b-roce patches=/home/tonyspark4/patches/dsv41-exl3-sr2roce gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[5,6,10,12,15,18,20,24,25,30,35,36,40,42,48] spec=dspark adapt=false engram_disk=1 engram_local=yes text_only=0 avail=116GiB
 vllm_dsv41 Up 3 seconds
 == rank 0 Reddie (head) ==
 vllm_dsv41
-9e3460d6323b65dcaf9ef76006d0fb5427e3647a34f4cb1dbc78862f70db62d1
+f84f96f7cdaac5ad35db4d598e552b9b1908fa90431a9066f2c7deaf248c3df0
 launched vllm_dsv41 rank=0 exp=exl3tp4b-ablit image=vllm-dsv41:exl3b-roce patches=/home/tonyspark2/patches/dsv41-exl3-sr2roce gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[5,6,10,12,15,18,20,24,25,30,35,36,40,42,48] spec=dspark adapt=false engram_disk=1 engram_local= text_only=0 avail=116GiB
 vllm_dsv41 Up 3 seconds
-all four launched Mon Sep 14 09:57:52 AM UTC 2026
-boot_dsv41_tp4x exit=0 2026-09-14T09:57:52Z
-09:57:53 R=running S4=running A=running B=running | minAvail~110GiB | no-shards-yet | no-milestone | err: none 
-09:59:58 R=running S4=running A=running B=running | minAvail~40GiB | shards~25% | no-milestone | err: none 
-10:02:03 R=running S4=running A=running B=running | minAvail~40GiB | shards~75% | no-milestone | err: none 
-10:04:09 R=running S4=running A=running B=running | minAvail~10GiB | shards~100% | GPU KV cache size: 3,615,772 tokens | err: none 
-SERVING 10:04:40
+all four launched Mon Sep 14 10:44:48 AM UTC 2026
+boot_dsv41_tp4x exit=0 2026-09-14T10:44:48Z
+10:44:49 R=running S4=running A=running B=running | minAvail~110GiB | no-shards-yet | no-milestone | err: none 
+10:46:54 R=running S4=running A=running B=running | minAvail~40GiB | shards~25% | no-milestone | err: none 
+10:48:59 R=running S4=running A=running B=running | minAvail~40GiB | shards~50% | no-milestone | err: none 
+10:51:05 R=running S4=running A=running B=running | minAvail~15GiB | shards~100% | GPU KV cache size: 3,757,748 tokens | err: none 
+SERVING 10:51:36
 === serving-time memory tools
-gx10-2f59 10:04:44 memfree_flusher start min_free=4GiB for 86400s
-gx10-25b7 10:04:46 memfree_flusher start min_free=4GiB for 86400s
-serving guard: 10:04:48 low: asusi=17 reddie=29 bluey=30 spark4=17 (serving, new minimum)
+gx10-2f59 10:51:40 memfree_flusher start min_free=4GiB for 86400s
+gx10-25b7 10:51:43 memfree_flusher start min_free=4GiB for 86400s
+serving guard: 10:51:45 low: asusi=18 reddie=30 bluey=31 spark4=18 (serving, new minimum)
 === Engram read path per rank
 REDDIE: Engram DISK mode: layer 1 rows [0, 96000564) read from model-00047-of-00048.safetensors;Engram DISK mode: layer 14 rows [0, 96003054) read from model-00048-of-00048.safetensors;
 SPARK4: Engram DISK mode: layer 14 rows [96003054, 192007016) read from model-00048-of-00048.safetensors (off=24576782496) and model-00048-of-00048.safetensor;Engram DISK mode: layer 1 rows [96000564, 192001740) read from model-00047-of-00048.safetensors (off=24576145048) and model-00047-of-00048.safetensors;Engram layer 14 rows [96003054, 192007016) read from node-local /engram-local;Engram layer 1 rows [96000564, 192001740) read from node-local /engram-local;
 ASUSI: Engram DISK mode: layer 14 rows [192007016, 288011564) read from model-00048-of-00048.safetensors (off=49153796768) and model-00048-of-00048.safetenso;Engram DISK mode: layer 1 rows [192001740, 288003654) read from model-00047-of-00048.safetensors (off=49152446104) and model-00047-of-00048.safetensor;Engram layer 14 rows [192007016, 288011564) read from node-local /engram-local;Engram layer 1 rows [192001740, 288003654) read from node-local /engram-local;
 BLUEY: Engram DISK mode: layer 14 rows [288011564, 384016682) read from model-00048-of-00048.safetensors (off=73730961056) and model-00048-of-00048.safetenso;Engram DISK mode: layer 1 rows [288003654, 384006168) read from model-00047-of-00048.safetensors (off=73728936088) and model-00047-of-00048.safetensor;Engram layer 14 rows [288011564, 384016682) read from node-local /engram-local;Engram layer 1 rows [288003654, 384006168) read from node-local /engram-local;
 === KV pool
-Model loading took 56.61 GiB memory and 266.967016 seconds
-Graph capturing finished in 4 secs, took 0.86 GiB
-Available KV cache memory: 29.72 GiB
-GPU KV cache size: 3,615,772 tokens, Maximum concurrency for 300,000 tokens per request: 12.05x
-Graph capturing finished in 4 secs, took 0.41 GiB
+Model loading took 56.66 GiB memory and 269.340433 seconds
+Graph capturing finished in 4 secs, took 0.91 GiB
+Available KV cache memory: 30.32 GiB
+GPU KV cache size: 3,757,748 tokens, Maximum concurrency for 300,000 tokens per request: 12.53x
+Graph capturing finished in 4 secs, took 0.42 GiB
 === checks (verify9.py)
-count run1: 200 tok / 2.06s = 97.0 tok/s | correct 1..100: True
-count run2: 200 tok / 1.83s = 109.4 tok/s | correct 1..100: True
-code run1 (bench v1 coding prompt, non-streaming): 200 tok / 2.52s = 79.3 tok/s
-code run2 (bench v1 coding prompt, non-streaming): 200 tok / 2.26s = 88.3 tok/s
+count run1: 200 tok / 2.11s = 94.7 tok/s | correct 1..100: True
+count run2: 200 tok / 1.85s = 108.2 tok/s | correct 1..100: True
+code run1 (bench v1 coding prompt, non-streaming): 200 tok / 2.43s = 82.4 tok/s
+code run2 (bench v1 coding prompt, non-streaming): 200 tok / 2.22s = 90.2 tok/s
 tool call: finish_reason=tool_calls tool_calls=[('get_weather', '{"city": "Paris", "unit": "c"}')] content="I'll check the current weather in Paris for you.\n\n" (1.2s)
 vision: answer='Red' prompt_tokens=201 (0.4s)
 head: Up 7 minutes
-=== restore exl3tp4b-ablit BEST done 10:05:00
+=== restore exl3tp4b-ablit BEST done 10:51:56

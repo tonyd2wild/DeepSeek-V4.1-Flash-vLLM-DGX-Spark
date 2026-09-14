@@ -2,31 +2,33 @@
 
 Goal: make DeepSeek-V4.1-Flash faster on the four DGX Sparks. The targets were decode, prefill, TTFT and throughput at C1-C6 across code, JSON, math, prose, reasoning, tables, summary, narrative and counting. The night ends with the uncensored build (EXL3-Pollard-Abliterated) serving on the best config found.
 
-**Status: experiments complete.** The final config has been serving since 10:05 UTC (6:05 AM ET), booted through the documented restore script. The live log is [`STATE.md`](STATE.md).
+**Status: complete.** The final config has been serving since 10:51 UTC (6:51 AM ET), booted through the documented restore script and verified with the full bench. Issues and PRs were answered at 11:00 UTC. The live log is [`STATE.md`](STATE.md).
 
 ## Final result vs baseline (same full bench, same prompts, cold prefill)
 
-| | Baseline | Final | Change |
-|---|---|---|---|
-| C1 aggregate tok/s | 56.27 | **60.75** | +8.0% |
-| C2 aggregate | 86.89 | **99.32** | +14.3% |
-| C3 aggregate | 114.70 | **125.17** | +9.1% |
-| C4 aggregate | 136.30 | **153.45** | +12.6% |
-| C5 aggregate | 156.62 | **180.14** | +15.0% |
-| C6 aggregate | 167.68 | **192.02** | +14.5% |
-| C1 per-stream | 63.19 | **66.63** | +5.4% |
-| TTFT C1 / C6 (s) | 0.276 / 0.456 | **0.208 / 0.394** | -25% / -14% |
-| Cold prefill, 2,950 tokens | 1,369 | **1,844** | +34.7% |
-| Cold prefill, 11,592 tokens | 1,443 | **1,991** | +38.0% |
-| Cold prefill, 46,810 tokens | 1,454 | **2,009** | +38.2% |
-| Cold prefill, 93,335 tokens | 1,468 | **2,021** | +37.7% |
-| KV pool (tokens) | 3,274,912 | **3,615,772** | +10.4% |
-| Context served | 300K | 300K | 1M proven on the same stack (needle at 520,921 tokens PASS) |
+Two full-bench runs of the final stack. Run 1 (10:05 UTC) is b1 plus the indexer split. Run 2 (10:51 UTC, **serving now**) adds `expandable_segments:False`, which grew the KV pool; the decode differences between the two runs are within the boot-to-boot noise seen all night.
 
-- **Per-stream C1 by category:** code 84.0 → 91.9, JSON 75.4 → 77.0, math 78.5 → 84.7, reasoning 70.2 → 76.6, tables 91.1 → 96.7, summary 34.5 → 39.0, prose 37.0 → 38.0, narrative 34.9 → 29.1, counting 98.3 → 113.9.
-- **Checks on the final config:** vision and tools 7/7, quality gate PASS, idle step test 117-118 tok/s counting with no slow first request, needle at 130,258 tokens PASS (2,053 tok/s prefill), generation liveness probe running.
-- **Prose and narrative across concurrency (per-stream):** prose 38.0 / 34.9 / 28.2 / 26.4 / 24.3 / 21.7 vs baseline 37.0 / 29.4 / 25.9 / 23.2 / 21.9 / 19.8 (C1-C6); narrative 29.1 / 27.5 / 24.5 / 21.3 / 20.8 / 19.0 vs baseline 34.9 / 26.9 / 22.7 / 19.8 / 17.5 / 15.0.
-- **Caveat:** single-request cells are noisy run to run (JSON C1 ranged 59-84 across SCREEN boots of near-identical configs). Narrative at C1 is the one cell below baseline; at C2-C6 it is 2-27% above.
+| | Baseline | Run 1 | **Run 2 (serving)** | Run 2 vs baseline |
+|---|---|---|---|---|
+| C1 aggregate tok/s | 56.27 | 60.75 | **58.27** | +3.6% |
+| C2 aggregate | 86.89 | 99.32 | **96.00** | +10.5% |
+| C3 aggregate | 114.70 | 125.17 | **128.29** | +11.8% |
+| C4 aggregate | 136.30 | 153.45 | **152.44** | +11.8% |
+| C5 aggregate | 156.62 | 180.14 | **171.11** | +9.3% |
+| C6 aggregate | 167.68 | 192.02 | **189.97** | +13.3% |
+| C1 per-stream | 63.19 | 66.63 | **63.74** | +0.9% |
+| TTFT C1 / C6 (s) | 0.276 / 0.456 | 0.208 / 0.394 | **0.221 / 0.399** | -20% / -12% |
+| Cold prefill, 2,950 tokens | 1,369 | 1,844 | **1,836** | +34.1% |
+| Cold prefill, 11,592 tokens | 1,443 | 1,991 | **1,997** | +38.4% |
+| Cold prefill, 46,810 tokens | 1,454 | 2,009 | **2,014** | +38.5% |
+| Cold prefill, 93,335 tokens | 1,468 | 2,021 | **2,032** | +38.4% |
+| KV pool (tokens) | 3,274,912 | 3,615,772 | **3,757,748** | +14.7% |
+| Context served | 300K | 300K | **300K** | 1M proven on the same stack (needle at 520,921 tokens PASS) |
+
+- **Per-stream C1 by category, run 2 vs baseline:** code 85.2 vs 84.0, JSON 65.0 vs 75.4, math 87.9 vs 78.5, reasoning 72.8 vs 70.2, tables 85.8 vs 91.1, summary 36.0 vs 34.5, prose 41.0 vs 37.0, narrative 36.3 vs 34.9, counting 112.9 vs 98.3.
+- **Prose across concurrency (per-stream, C1-C6):** run 2 41.0 / 31.0 / 28.8 / 24.3 / 24.3 / 22.0 vs baseline 37.0 / 29.4 / 25.9 / 23.2 / 21.9 / 19.8, above at every level.
+- **Checks on the serving config:** vision and tools 7/7, quality gate PASS, idle test 117.6 tok/s after a 45 s idle vs 118.1 back to back, needle at 130,258 tokens PASS (2,031 tok/s prefill), generation liveness probe running.
+- **Caveat:** single-request cells are noisy run to run. JSON C1 ranged 59-84 across SCREEN boots of near-identical configs, and C1 aggregate moved 58.3-60.8 between the two final runs. JSON and tables at C1 are below baseline in run 2 and above it in run 1. The prefill, TTFT, C2-C6 and KV gains hold in both runs.
 
 ## Starting point (baseline, as found at 02:00 ET)
 
