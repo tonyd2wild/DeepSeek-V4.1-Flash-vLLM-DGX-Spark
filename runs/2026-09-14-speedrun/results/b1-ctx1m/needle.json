@@ -1,0 +1,11 @@
+[
+ {
+  "target": 524288,
+  "prompt_tokens": 520921,
+  "depth": 0.5,
+  "ttft_s": 383.9,
+  "prefill_tok_s": 1356.9,
+  "answer": "COPPER-LANTERN-8315",
+  "pass": true
+ }
+]
