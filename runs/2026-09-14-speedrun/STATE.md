@@ -145,7 +145,7 @@ Owner: Tony (asleep). Operator: Claude (this session). This file is the source o
 | # | change | boot | KV | C1 agg | C3 agg | C6 agg | code C1 | prefill 32K | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | 00b | baseline SCREEN (as found, warm) | - | 3,274,912 | 54.3 | 114.8 | 166.3 | 80.6 | 1,454 (full-bench cold) | reference |
-| E02 | E01 + Engram FAST staging (`dsv41-exl3-sr1`, `DSV41_ENGRAM_FAST=1`) | 534 s, OK ("Engram FAST staging on" logged) | pending | | | | | | screen running 06:40 |
+| E02 | E01 + Engram FAST staging (`dsv41-exl3-sr1`, `DSV41_ENGRAM_FAST=1`) | 534 s, OK ("Engram FAST staging on" logged) | 3,505,010 (+7.0%) | 58.8 (+8.4%) | 119.1 (+3.8%) | 189.5 (+13.9%) | 83.5 (+3.5%) | **1,751** (+20% vs baseline cold 1,454); 8K 1,665 (+15%) | **KEEP**. Quality PASS 5/5. JSON C1 84.0 (+32%). Idle back-to-back count 110.6. Prefill probe GPU util still 43-47% |
 | E01 | `NCCL_MAX_NCHANNELS=8` | 8.7 min, OK | 3,512,346 (+7.3%) | 57.4 (+5.8%) | 117.3 (+2.2%) | 184.2 (+10.7%) | 85.4 (+5.9%) | 1,486 (+2%) | **KEEP** (bot-lab-21 saw +11% C6) |
 
 ## Findings so far

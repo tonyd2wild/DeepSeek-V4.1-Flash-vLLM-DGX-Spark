@@ -42,7 +42,16 @@ Goal: make DeepSeek-V4.1-Flash faster on the four DGX Sparks. The targets were d
 
 ## Results
 
-(filled in as the night goes)
+SCREEN results against the baseline SCREEN. Aggregate tok/s is the mean of the 8 categories; per-stream numbers are C1. Prefill is cold on each fresh boot, compared with the baseline's cold full-bench numbers (1,443 at 8K, 1,454 at 32K).
+
+| # | change (stacked) | KV pool | C1 agg | C3 agg | C6 agg | code | JSON | math | prose | prefill 8K / 32K | quality |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| base | as found | 3,274,912 | 54.3 | 114.8 | 166.3 | 80.6 | 63.6 | 78.2 | 37.3 | 1,443 / 1,454 | - |
+| E01 | `NCCL_MAX_NCHANNELS=8` (bot-lab-21) | 3,512,346 (+7.3%) | 57.4 (+5.8%) | 117.3 (+2.2%) | 184.2 (+10.7%) | 85.4 | 72.5 | 82.9 | 36.5 | 1,279 / 1,486 | - |
+| E02 | + Engram fast staging (ours) | 3,505,010 (+7.0%) | **58.8 (+8.4%)** | **119.1 (+3.8%)** | **189.5 (+13.9%)** | 83.5 | **84.0** | 81.8 | 37.7 | **1,665 / 1,751** | PASS |
+
+- **Prefill probe** (one 39,624-token cold prompt): baseline 1,671 tok/s (23.7 s TTFT); E02 **2,016 tok/s** (19.7 s).
+- **GPU utilization during that prefill** is still 43-47%, so host-side work is still the prefill limit. That's the next target.
 
 ## What we built tonight
 

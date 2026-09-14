@@ -1,0 +1,3 @@
+R=   288 bit-identical=True  cold: preadv+cpu      5.3 ms, fast      6.3 ms | warm: preadv+cpu      4.8 ms, fast(cpu dequant here)      2.2 ms
+R= 98304 bit-identical=True  cold: preadv+cpu    657.8 ms, fast    385.1 ms | warm: preadv+cpu    407.3 ms, fast(cpu dequant here)     24.6 ms
+RESULT PASS
