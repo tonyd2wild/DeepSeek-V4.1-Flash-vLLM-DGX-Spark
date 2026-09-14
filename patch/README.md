@@ -14,7 +14,9 @@ on every node. Boots 3-9 mounted `~/patches/dsv41-boot3/`: the same files, excep
 | `sparse_attn_indexer.py` | a9b73756 | `model_executor/layers/sparse_attn_indexer.py` | SM12x decode top-k uses `top_k_per_row_decode` (same gate as Kai's `38d9c39`; comment differs) |
 | `mounts.txt` | 79a774bc | | manifest (7 lines) |
 
-The subfolders hold each fix's diff, offline test and notes:
+All diffs are `diff -u` with repo-relative paths (`a/vllm/...`) against vLLM `dsv41-feat` @ `e47aa780b`, so `git apply` works
+from a checkout at that commit; `full/` has one diff per mounted file and `verify_diffs.sh` proves they reproduce the mounted
+files byte for byte. The subfolders hold each fix's diff, offline test and notes:
 
 | folder | contents |
 |---|---|
@@ -23,6 +25,7 @@ The subfolders hold each fix's diff, offline test and notes:
 | `cudagraph-prestage/` | prestage diffs for engram.py and model_state.py, `test_engram_prestage.py` (33 checks, bit-exact) |
 | `sm12x-pages/` | Kai's SM12x page-size diffs, the indexer 64-state diff, `test_indexer64.py` |
 | `sm12x-indexer-topk/` | top-k diff, GB10 correctness and timing tests, `RESULTS.md` |
+| `full/` | one diff per mounted file from the pinned vLLM commit to the boot-10 file; `git apply patch/full/*.diff` |
 
 `apply_engram_patch.py`, `engram_helper.py` and `test_engram_disk.py` are from the first Engram-on-disk scaffold (unit test of the
 original reader).

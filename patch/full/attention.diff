@@ -1,6 +1,32 @@
 --- a/vllm/models/deepseek_v4_1/attention.py
 +++ b/vllm/models/deepseek_v4_1/attention.py
-@@ -968,8 +968,23 @@
+@@ -453,7 +453,9 @@
+             prefix=f"{prefix}.swa_cache",
+             cache_config=cache_config,
+             backend_cls=self.swa_backend_cls,
+-            block_size=32,
++            # Tech2Wild/Kai 2026-09-10: page size is a property of the SWA decode
++            # kernel (FlashInfer SM120 sparse-MLA kernels are 64-token pages).
++            block_size=getattr(self.swa_backend_cls, "get_swa_block_size", lambda: 32)(),
+         )
+ 
+         # The attention layer itself was already registered with the
+@@ -938,8 +940,13 @@
+         # alignment; plain bf16 / per-tensor fp8 rows use natural element-size
+         # pages.
+         uses_fp8_ds_mla_layout = self.kv_cache_dtype == "fp8_ds_mla"
++        # Tech2Wild/Kai 2026-09-10: SM120 FlashInfer sparse-MLA kernels are
++        # instantiated for 64-STATE compressed pages, so a kv-source layer's page
++        # is 64 * compress_ratio tokens there (ratio 1 -> 64, ratio 2 -> 128).
++        _hook = getattr(self.backend_cls, "get_compressed_block_size", None)
++        _bs = _hook(self.compress_ratio) if _hook is not None else None
+         return MLAAttentionSpec(
+-            block_size=vllm_config.cache_config.block_size,
++            block_size=_bs or vllm_config.cache_config.block_size,
+             num_kv_heads=1,
+             head_size=self.head_dim,
+             dtype=torch.uint8 if uses_fp8_ds_mla_layout else self.kv_cache_torch_dtype,
+@@ -961,8 +968,23 @@
          assert self.compressed_cache_prefix is not None
          source = self._static_forward_context[self.compressed_cache_prefix]
          return source.kv_cache
@@ -11,7 +37,7 @@
 +
 +    return current_platform.is_cuda() and current_platform.is_device_capability_family(120)
 +
- 
++
 +class DeepseekV4IndexerSM12xBackend(DeepseekV4IndexerBackend):
 +    """Tech2Wild 2026-09-10: SM12x indexer pages hold 64 states (64 tokens at
 +    compress ratio 1, 128 at ratio 2), so both sizes are kernel block sizes."""
@@ -19,12 +45,12 @@
 +    @staticmethod
 +    def get_supported_kernel_block_sizes() -> list[int]:
 +        return [128, 64]
-+
+ 
 +
  class DeepseekV4IndexerCache(torch.nn.Module, AttentionLayerBase):
      def __init__(
          self,
-@@ -999,8 +1014,14 @@
+@@ -992,8 +1014,14 @@
          # head_dim already carries the fp8 scale padding
          # tokens_per_state=1 for V3.2, >1 for DeepseekV4; same cache layout.
          uses_fp8_ds_mla_layout = vllm_config.cache_config.cache_dtype == "fp8_ds_mla"
@@ -40,7 +66,7 @@
              num_kv_heads=1,
              head_size=self.head_dim,
              dtype=self.dtype,
-@@ -1012,6 +1033,8 @@
+@@ -1005,6 +1033,8 @@
      def forward(self): ...
  
      def get_attn_backend(self) -> type[AttentionBackend]:

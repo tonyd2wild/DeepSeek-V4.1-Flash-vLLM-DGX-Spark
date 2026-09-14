@@ -1,5 +1,5 @@
---- /private/tmp/claude-501/-Users-tonyd2wild-Desktop-2Wild-s-Closet/fb5fd5e2-7d4c-4cda-9c5d-0e3e3b4eedbd/scratchpad/engramfix2/engram.py.offsetfix	2026-09-10 07:55:19
-+++ /private/tmp/claude-501/-Users-tonyd2wild-Desktop-2Wild-s-Closet/fb5fd5e2-7d4c-4cda-9c5d-0e3e3b4eedbd/scratchpad/engramfix2/engram.py	2026-09-10 07:55:19
+--- a/vllm/models/deepseek_v4_1/common/engram.py
++++ b/vllm/models/deepseek_v4_1/common/engram.py
 @@ -695,7 +695,10 @@
          start = meta["data_offsets"][0]
          return fd, 8 + n + start, tuple(meta["shape"])
