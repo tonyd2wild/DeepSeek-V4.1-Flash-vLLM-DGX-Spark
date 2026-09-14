@@ -1,201 +1,391 @@
 --- a/sglang/srt/layers/engram.py
 +++ b/sglang/srt/layers/engram.py
-@@ -666,6 +666,174 @@
+@@ -1,3 +1,8 @@
++# Original file: python/sglang/srt/layers/engram.py from SGLang (lmsysorg/sglang:dev-dsv41,
++# commit da64c5cb), Copyright the SGLang Team, licensed under the Apache License 2.0.
++# Modifications Copyright (c) 2026 Tech2wild: disk-backed Engram rows, enabled by
++# SGLANG_DSV41_ENGRAM_DISK=1; every change is marked "[DSV41 disk]". The modifications are
++# also offered under the MIT License; this file as a whole remains under Apache-2.0.
+ """Engram: gated n-gram hash memory added to the hc residual stream.
+ 
+ Predecessors come from the live batch and per-request history of the n - 1
+@@ -7,12 +12,15 @@
+ 
+ from __future__ import annotations
+ 
++import concurrent.futures  # [DSV41 disk]
+ import ctypes
+ import glob
++import json  # [DSV41 disk]
+ import logging
+ import mmap
+ import os
+ import re
++import struct  # [DSV41 disk]
+ import time
+ from typing import Optional
+ 
+@@ -666,6 +674,288 @@
              logger.info(msg)
  
  
 +# ---------------------------------------------------------------------------
-+# Tech2Wild 2026-09-14 (MIT): disk-backed Engram rows for DGX Spark (GB10).
-+# Ported from our vLLM patches (tonyd2wild/DeepSeek-V4.1-Flash-vLLM-DGX-Spark): Kai's DiskEngramTable
-+# (2026-09-10) and the speed-run fast staging (2026-09-14: numpy memmap gather split over a thread pool,
-+# raw fp8 rows and e8m0 scales dequantized on the GPU). On GB10 the GPU and the host share one 121.7 GiB
-+# pool, so neither layout above (device rows or a host table) leaves room for the ~47 GiB per-rank Engram
-+# shard next to the weights. With SGLANG_DSV41_ENGRAM_DISK=1 a rank keeps read-only memmaps of the
-+# checkpoint's Engram tensors and gathers only the rows a step needs; the page cache holds the hot rows.
-+# SGLANG_DSV41_ENGRAM_DIR may point at a node-local sparse copy of the Engram shards (engram-local.json
-+# names the row range per layer that exists there); rows outside that range come from the model directory.
-+# The lookup runs as a graph break (eager_on_graph), so the decode CUDA graph backend must be "breakable".
++# [DSV41 disk] Disk-backed Engram rows (SGLANG_DSV41_ENGRAM_DISK=1).
++#
++# On GB10 (DGX Spark) host and device memory are one 121.7 GiB pool, so neither
++# the device-sharded table (about 47 GiB per rank at TP4) nor the host table fits
++# beside about 77 GiB of weights. In disk mode a rank keeps no rows in memory: it
++# reads the rows it owns from the checkpoint's safetensors shards (full shards,
++# or a node-local sparse copy holding only its rows at the original offsets) and
++# returns what the device-sharded path returns: the dequantized row for an owned
++# id, zeros for any other id, then the same TP all-reduce.
++#
++# Ownership is by whole hash heads (the prime-sized sub-tables in hash-column
++# order), ceil(H / tp) heads per rank. Any partition is exact under the
++# all-reduce; this one matches our vLLM lane, whose sparse copies of shards
++# 47/48 hold exactly these rows. The default floor(N * r / tp) split differs by
++# about 1,000 rows at each boundary and would read holes of those copies.
 +# ---------------------------------------------------------------------------
-+_DSV41_ENGRAM_DISK = os.environ.get("SGLANG_DSV41_ENGRAM_DISK", "0") == "1"
-+_DSK_THREADS = int(os.environ.get("SGLANG_DSV41_ENGRAM_DISK_THREADS", "128"))
-+_DSK_POOL = None
-+_DSK_LOOKUP = None
++_ENGRAM_DISK = os.environ.get("SGLANG_DSV41_ENGRAM_DISK", "0") == "1"
 +
 +
-+def _dsk_pool():
-+    global _DSK_POOL
-+    if _DSK_POOL is None:
-+        import concurrent.futures
++def engram_disk_enabled() -> bool:
++    return _ENGRAM_DISK
 +
-+        _DSK_POOL = concurrent.futures.ThreadPoolExecutor(
-+            max_workers=_DSK_THREADS, thread_name_prefix="engram-disk"
++
++def engram_head_sizes(layout: "EngramLayout", layer_hash_index: int) -> tuple[int, ...]:
++    """Rows of every hash column of one table, in the order EngramHasher's offsets
++    concatenate them."""
++    return tuple(p for per_ngram in layout.primes[layer_hash_index] for p in per_ngram)
++
++
++def head_aligned_row_range(head_sizes, tp_rank: int, tp_size: int) -> tuple[int, int]:
++    """Global rows [lo, hi) of the whole hash heads that TP rank `tp_rank` owns."""
++    per = -(-len(head_sizes) // tp_size)
++    first = min(tp_rank * per, len(head_sizes))
++    last = min(first + per, len(head_sizes))
++    return sum(head_sizes[:first]), sum(head_sizes[:last])
++
++
++def _safetensors_entry(path: str, name: str) -> tuple[int, str, list]:
++    """(absolute byte offset, dtype, shape) of one tensor of a safetensors file."""
++    with open(path, "rb") as f:
++        (n,) = struct.unpack("<Q", f.read(8))
++        meta = json.loads(f.read(n))[name]
++    return 8 + n + meta["data_offsets"][0], meta["dtype"], list(meta["shape"])
++
++
++def _engram_disk_root(layer_id: int, lo: int, hi: int) -> str:
++    """SGLANG_DSV41_ENGRAM_DIR, else the model path. A directory with an
++    engram-local.json (a node-local sparse copy) must cover rows [lo, hi)."""
++    root = os.environ.get("SGLANG_DSV41_ENGRAM_DIR") or get_model().model_path
++    meta_path = os.path.join(root, "engram-local.json")
++    if os.path.exists(meta_path):
++        with open(meta_path) as f:
++            have = json.load(f)["layers"].get(str(layer_id))
++        if have is None or not (have[0] <= lo and hi <= have[1]):
++            raise RuntimeError(
++                f"engram disk: {meta_path} holds layer {layer_id} rows {have}, this rank "
++                f"needs [{lo}, {hi}). Node rank and TP rank must match the copy."
++            )
++    elif os.environ.get("SGLANG_DSV41_ENGRAM_REQUIRE_LOCAL", "0") == "1":
++        raise RuntimeError(
++            f"engram disk: SGLANG_DSV41_ENGRAM_REQUIRE_LOCAL=1 but {root} has no engram-local.json"
 +        )
-+    return _DSK_POOL
++    return root
 +
 +
-+def _dsk_memmaps(model_dir: str, layer_id: int):
-+    """Read-only memmaps over one Engram layer's full embed.weight [N, dim] and
-+    embed.scale [N, dim // 32] tensors (uint8) in the safetensors shards."""
-+    import json
-+    import struct
-+
-+    with open(os.path.join(model_dir, "model.safetensors.index.json")) as f:
-+        weight_map = json.load(f)["weight_map"]
-+    maps = []
-+    for suffix in ("weight", "scale"):
-+        name = f"layers.{layer_id}.engram.embed.{suffix}"
-+        path = os.path.join(model_dir, weight_map[name])
-+        with open(path, "rb") as f:
-+            n = struct.unpack("<Q", f.read(8))[0]
-+            meta = json.loads(f.read(n))[name]
-+        off = 8 + n + meta["data_offsets"][0]
-+        mm = np.memmap(path, dtype=np.uint8, mode="r", offset=off, shape=tuple(meta["shape"]))
-+        try:
-+            mm._mmap.madvise(mmap.MADV_RANDOM)
-+        except Exception:  # noqa: BLE001
-+            pass
-+        maps.append(mm)
-+    return maps[0], maps[1]
++_DISK_POOL: Optional[concurrent.futures.ThreadPoolExecutor] = None
 +
 +
-+def _dsk_take(mm, idx, out, futs: list) -> None:
-+    """out[i] = mm[idx[i]]; large gathers are split over the pool so cold rows
-+    fault in parallel (numpy's take loop releases the GIL)."""
-+    n = idx.shape[0]
-+    step = min(1024, max(16, -(-n // _DSK_THREADS)))
-+    if n <= step:
-+        np.take(mm, idx, axis=0, out=out)
-+        return
-+    pool = _dsk_pool()
-+    for lo in range(0, n, step):
-+        hi = min(lo + step, n)
-+        futs.append(pool.submit(np.take, mm, idx[lo:hi], 0, out[lo:hi]))
-+
-+
-+class _DiskEngramRows:
-+    """This rank's Engram rows [row_start, row_start + rows), read on demand."""
-+
-+    def __init__(self, layer_id, row_start, rows, dim, model_dir=None, local_dir=None):
-+        import json
-+
-+        self.layer_id = layer_id
-+        self.row_start = row_start
-+        self.rows = rows
-+        self.dim = dim
-+        self.sb = dim // FP8_BLOCK_SIZE
-+        if model_dir is None:
-+            model_dir = get_model().model_path
-+        if local_dir is None:
-+            local_dir = os.environ.get("SGLANG_DSV41_ENGRAM_DIR", "") or model_dir
-+        lo, hi = 0, None
-+        info = os.path.join(local_dir, "engram-local.json")
-+        if local_dir != model_dir and os.path.exists(info):
-+            with open(info) as f:
-+                lo, hi = json.load(f)["layers"][str(layer_id)]
-+        self.w, self.s = _dsk_memmaps(local_dir, layer_id)
-+        n = self.w.shape[0]
-+        assert self.w.shape[1] == dim and tuple(self.s.shape) == (n, self.sb), (self.w.shape, self.s.shape)
-+        self.lo, self.hi = lo, (n if hi is None else hi)
-+        a, b = row_start, row_start + rows
-+        self.fallback = None
-+        if rows and not (self.lo <= a and b <= self.hi):
-+            self.fallback = _dsk_memmaps(model_dir, layer_id)
-+        missing = (max(0, min(self.lo, b) - a) + max(0, b - max(self.hi, a))) if rows else 0
-+        self._w_buf = self._s_buf = None
-+        logging.getLogger(__name__).info(
-+            "Engram DISK layer %d: rows [%d, %d) from %s (rows [%d, %d) there); %d rows from %s",
-+            layer_id, a, b, local_dir, self.lo, self.hi, missing,
-+            model_dir if self.fallback is not None else "-",
++def _disk_pool() -> concurrent.futures.ThreadPoolExecutor:
++    global _DISK_POOL
++    if _DISK_POOL is None:
++        _DISK_POOL = concurrent.futures.ThreadPoolExecutor(
++            max_workers=int(os.environ.get("SGLANG_DSV41_ENGRAM_THREADS", "32")),
++            thread_name_prefix="engram-disk",
 +        )
++    return _DISK_POOL
 +
-+    def _buffers(self, u: int):
-+        if self._w_buf is None or self._w_buf.shape[0] < u:
-+            cap = max(u, 4096)
-+            pin = torch.cuda.is_available()
-+            self._w_buf = torch.empty((cap, self.dim), dtype=torch.uint8, pin_memory=pin)
-+            self._s_buf = torch.empty((cap, self.sb), dtype=torch.uint8, pin_memory=pin)
-+        return self._w_buf[:u], self._s_buf[:u]
 +
-+    def gather(self, u):
-+        """uint8 rows [U, dim] and scales [U, sb] (pinned host) for global row ids u (int64 numpy)."""
-+        w_t, s_t = self._buffers(u.shape[0])
-+        w_np, s_np = w_t.numpy(), s_t.numpy()
-+        futs: list = []
-+        parts = []
-+        if self.fallback is None:
-+            _dsk_take(self.w, u, w_np, futs)
-+            _dsk_take(self.s, u, s_np, futs)
++def _parallel_take(jobs) -> None:
++    """For each (src, rows, out): out[i] = src[rows[i]]. Large gathers are split
++    over the shared pool (np.take releases the GIL), so cold rows fault in from
++    disk in parallel. Only the calling thread submits."""
++    pool = _disk_pool()
++    futures = []
++    for src, rows, out in jobs:
++        n = rows.shape[0]
++        step = min(1024, max(16, -(-n // pool._max_workers)))
++        if n <= step:
++            np.take(src, rows, axis=0, out=out)
++            continue
++        for a in range(0, n, step):
++            futures.append(pool.submit(np.take, src, rows[a : a + step], 0, out[a : a + step]))
++    for f in futures:
++        f.result()
++
++
++class _RowioJob(ctypes.Structure):
++    # Must match `struct Job` in dsv41_rowio.cpp.
++    _fields_ = [
++        ("table", ctypes.c_void_p),
++        ("ids", ctypes.c_void_p),
++        ("w_out", ctypes.c_void_p),
++        ("s_out", ctypes.c_void_p),
++        ("n", ctypes.c_uint64),
++    ]
++
++
++_ROWIO = None
++
++
++def _rowio():
++    """(lib, host-function pointer, cuLaunchHostFunc) of the native reader named by
++    SGLANG_DSV41_ENGRAM_ROWIO, or None when unset."""
++    global _ROWIO
++    if _ROWIO is None:
++        path = os.environ.get("SGLANG_DSV41_ENGRAM_ROWIO", "")
++        if not path:
++            _ROWIO = False
 +        else:
-+            here = (u >= self.lo) & (u < self.hi)
-+            for mask, (wm, sm) in ((here, (self.w, self.s)), (~here, self.fallback)):
-+                pos = np.nonzero(mask)[0]
-+                if pos.size == 0:
-+                    continue
-+                tw = np.empty((pos.size, self.dim), np.uint8)
-+                ts = np.empty((pos.size, self.sb), np.uint8)
-+                _dsk_take(wm, u[pos], tw, futs)
-+                _dsk_take(sm, u[pos], ts, futs)
-+                parts.append((pos, tw, ts))
-+        for fut in futs:
-+            fut.result()
-+        for pos, tw, ts in parts:
-+            w_np[pos] = tw
-+            s_np[pos] = ts
-+        return w_t, s_t
++            lib = ctypes.CDLL(path)
++            lib.rowio_open.argtypes = [ctypes.c_char_p, ctypes.c_uint64, ctypes.c_char_p]
++            lib.rowio_open.argtypes += [ctypes.c_uint64] * 5 + [ctypes.c_int]
++            lib.rowio_open.restype = ctypes.c_void_p
++            cuda = ctypes.CDLL("libcuda.so.1")
++            launch = cuda.cuLaunchHostFunc
++            launch.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p]
++            launch.restype = ctypes.c_int
++            _ROWIO = (lib, ctypes.cast(lib.rowio_lookup, ctypes.c_void_p).value, launch)
++    return _ROWIO or None
 +
 +
-+def _disk_owned_rows_impl(disk, indices: torch.Tensor) -> torch.Tensor:
-+    """Same result as the device-sharded path: this rank's rows dequantized to bf16,
-+    zero for rows another rank owns (the caller's all-reduce sums the ranks)."""
-+    flat = indices.reshape(-1).to(torch.int64)
-+    owned = (flat >= disk.row_start) & (flat < disk.row_start + disk.rows)
-+    safe = torch.where(owned, flat, torch.full_like(flat, disk.row_start))
-+    uniq, inverse = torch.unique(safe, return_inverse=True)
-+    w_t, s_t = disk.gather(uniq.cpu().numpy())
-+    dev = indices.device
-+    w = w_t.to(dev, non_blocking=True).view(torch.float8_e4m3fn)
-+    s = s_t.to(dev, non_blocking=True).view(torch.float8_e8m0fnu)
-+    rows = w.float().unflatten(-1, (-1, FP8_BLOCK_SIZE))
-+    vals = (rows * s.float().unsqueeze(-1)).flatten(-2).to(torch.bfloat16)
-+    out = vals.index_select(0, inverse).masked_fill(~owned.unsqueeze(-1), 0)
-+    return out.view(*indices.shape, disk.dim)
++class DiskEngramRows:
++    """Rows [lo, hi) of one engram table, read on demand from safetensors shards.
 +
++    Eager lookups (prefill, eager decode): de-duplicate the owned ids, gather their
++    raw fp8 rows and e8m0 scale rows from read-only memmaps over a thread pool,
++    copy the raw bytes to the GPU and dequantize there with the upstream
++    engram_gather kernel. A lookup inside CUDA-graph capture cannot sync with the
++    host, so it enqueues the native reader (SGLANG_DSV41_ENGRAM_ROWIO, built from
++    dsv41_rowio.cpp) as a CUDA host function that the graph runs at replay. Both
++    paths hand engram_gather the same bytes, so the values equal the
++    device-sharded path's bit for bit (unowned ids: fp8 0 x e8m0 0 = +0.0).
++    """
 +
-+def _disk_lookup(disk, indices: torch.Tensor) -> torch.Tensor:
-+    global _DSK_LOOKUP
-+    if _DSK_LOOKUP is None:
-+        from sglang.srt.model_executor.runner_backend_utils.breakable_cuda_graph.breakable_cuda_graph import (
-+            eager_on_graph,
++    def __init__(self, root: str, layer_id: int, num_embeddings: int, dim: int, lo: int, hi: int):
++        self.layer_id, self.dim, self.sb = layer_id, dim, dim // FP8_BLOCK_SIZE
++        self.lo, self.hi = lo, hi
++        with open(os.path.join(root, "model.safetensors.index.json")) as f:
++            weight_map = json.load(f)["weight_map"]
++        w_name = f"layers.{layer_id}.engram.embed.weight"
++        s_name = f"layers.{layer_id}.engram.embed.scale"
++        self.w_path = os.path.join(root, weight_map[w_name])
++        self.s_path = os.path.join(root, weight_map[s_name])
++        self.w_off, w_dtype, w_shape = _safetensors_entry(self.w_path, w_name)
++        self.s_off, s_dtype, s_shape = _safetensors_entry(self.s_path, s_name)
++        got = (w_dtype, w_shape, s_dtype, s_shape)
++        want = ("F8_E4M3", [num_embeddings, dim], "F8_E8M0", [num_embeddings, self.sb])
++        if got != want:
++            raise ValueError(f"engram disk: layer {layer_id} tensors are {got}, expected {want}")
++        rows = max(hi - lo, 1)
++        # Read-only maps of the owned rows only; pages fault in on first use.
++        self.w_map = np.memmap(self.w_path, np.uint8, "r", self.w_off + lo * dim, (rows, dim))
++        self.s_map = np.memmap(self.s_path, np.uint8, "r", self.s_off + lo * self.sb, (rows, self.sb))
++        for m in (self.w_map, self.s_map):
++            try:
++                m._mmap.madvise(mmap.MADV_RANDOM)
++            except (AttributeError, OSError, ValueError):
++                pass
++        self._check_rows()
++        self._graph = None  # native reader state, created on the first eager lookup
++        self._jobs: dict = {}
++
++    def _check_rows(self, samples: int = 16) -> None:
++        """A sparse copy that does not hold these rows reads zeros. An e8m0 byte 0
++        is 2**-127, so a sampled scale row of all zeros means a hole."""
++        if self.hi <= self.lo:
++            return
++        n = self.hi - self.lo
++        probe = np.unique(np.append(np.arange(0, n, max(1, n // samples))[:samples], n - 1))
++        holes = int((self.s_map[probe] == 0).all(axis=1).sum())
++        if holes:
++            raise RuntimeError(
++                f"engram disk: layer {self.layer_id}: {holes} of {probe.size} sampled rows of "
++                f"[{self.lo}, {self.hi}) in {self.s_path} read as zeros (sparse-file hole): "
++                "this directory does not hold this rank's rows"
++            )
++
++    def gather_raw(self, ids: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
++        """Host gather: uint8 rows [n, dim] and scale rows [n, sb] for global ids,
++        zeros for ids outside [lo, hi). Each distinct row is read once."""
++        ids = np.asarray(ids, dtype=np.int64).reshape(-1)
++        owned = (ids >= self.lo) & (ids < self.hi)
++        uniq, inverse = np.unique(ids[owned] - self.lo, return_inverse=True)
++        w_u = np.empty((uniq.size, self.dim), np.uint8)
++        s_u = np.empty((uniq.size, self.sb), np.uint8)
++        _parallel_take([(self.w_map, uniq, w_u), (self.s_map, uniq, s_u)])
++        w = np.zeros((ids.size, self.dim), np.uint8)
++        s = np.zeros((ids.size, self.sb), np.uint8)
++        w[owned] = w_u[inverse.reshape(-1)]
++        s[owned] = s_u[inverse.reshape(-1)]
++        return w, s
++
++    def lookup(self, indices: torch.Tensor, out: torch.Tensor) -> torch.Tensor:
++        """out [..., dim] bf16 on the GPU <- dequantized owned rows, zeros elsewhere."""
++        flat = indices.reshape(-1)
++        if flat.numel() == 0:
++            return out
++        if torch.cuda.is_current_stream_capturing():
++            return self._lookup_in_graph(flat, out)
++        if self._graph is None and _rowio() is not None:
++            self._init_graph_staging(out.device)  # pinned allocations stay outside capture
++        owned = (flat >= self.lo) & (flat < self.hi)
++        local = torch.where(owned, flat - self.lo, torch.full_like(flat, -1))
++        # Unowned ids become -1, which sorts first: row 0 of the staged block is
++        # then an all-zero row that engram_gather turns into +0.0.
++        uniq, inverse = torch.unique(local, return_inverse=True)
++        uniq_host = uniq.cpu().numpy()
++        skip = int(uniq_host.size > 0 and uniq_host[0] < 0)
++        rows = uniq_host[skip:]
++        w = torch.zeros((uniq_host.size, self.dim), dtype=torch.uint8, pin_memory=True)
++        s = torch.zeros((uniq_host.size, self.sb), dtype=torch.uint8, pin_memory=True)
++        if rows.size:
++            _parallel_take([(self.w_map, rows, w.numpy()[skip:]), (self.s_map, rows, s.numpy()[skip:])])
++        w_dev = w.to(out.device, non_blocking=True)
++        s_dev = s.to(out.device, non_blocking=True)
++        engram_gather(
++            w_dev.data_ptr(), s_dev.data_ptr(), inverse.reshape(-1),
++            out.view(-1, self.dim), self.dim, FP8_BLOCK_SIZE,
++        )
++        return out
++
++    def _init_graph_staging(self, device) -> None:
++        lib, _, _ = _rowio()
++        cap = int(os.environ.get("SGLANG_DSV41_ENGRAM_GRAPH_MAX_ROWS", "16384"))
++        direct = int(os.environ.get("SGLANG_DSV41_ENGRAM_DIRECT", "0") == "1")
++        table = lib.rowio_open(
++            self.w_path.encode(), self.w_off, self.s_path.encode(), self.s_off,
++            self.lo, self.hi, self.dim, self.sb, direct,
++        )
++        if not table:
++            raise RuntimeError(f"engram disk: dsv41_rowio cannot open {self.w_path}")
++        self._graph = (
++            table,
++            torch.empty(cap, dtype=torch.int64, pin_memory=True),
++            torch.empty((cap, self.dim), dtype=torch.uint8, pin_memory=True),
++            torch.empty((cap, self.sb), dtype=torch.uint8, pin_memory=True),
++            torch.arange(cap, dtype=torch.int64, device=device),
 +        )
 +
-+        _DSK_LOOKUP = eager_on_graph(True)(_disk_owned_rows_impl)
-+    return _DSK_LOOKUP(disk, indices)
++    def _lookup_in_graph(self, flat: torch.Tensor, out: torch.Tensor) -> torch.Tensor:
++        native = _rowio()
++        if native is None or self._graph is None:
++            raise RuntimeError(
++                "engram disk: CUDA-graph capture reached the Engram lookup; set "
++                "SGLANG_DSV41_ENGRAM_ROWIO to the built dsv41_rowio.so, or launch with "
++                "--disable-cuda-graph"
++            )
++        _, host_fn, launch = native
++        table, ids_host, w_host, s_host, seq = self._graph
++        n = flat.numel()
++        if n > ids_host.shape[0]:
++            raise RuntimeError(
++                f"engram disk: {n} ids in a captured batch exceed "
++                f"SGLANG_DSV41_ENGRAM_GRAPH_MAX_ROWS={ids_host.shape[0]}"
++            )
++        job = self._jobs.get(n)
++        if job is None:  # kept alive: the captured host node points at it
++            job = _RowioJob(table, ids_host.data_ptr(), w_host.data_ptr(), s_host.data_ptr(), n)
++            self._jobs[n] = job
++        ids_host[:n].copy_(flat, non_blocking=True)
++        rc = launch(torch.cuda.current_stream().cuda_stream, host_fn, ctypes.addressof(job))
++        if rc != 0:
++            raise RuntimeError(f"engram disk: cuLaunchHostFunc returned {rc}")
++        # The GPU reads the pinned rows in place (UVA); ids outside [lo, hi) were zero-filled.
++        engram_gather(
++            w_host.data_ptr(), s_host.data_ptr(), seq[:n],
++            out.view(-1, self.dim), self.dim, FP8_BLOCK_SIZE,
++        )
++        return out
 +
 +
  class EngramEmbedding(nn.Module):
      """One layer's fp8 hash table with e8m0 block scales, dequantized on lookup.
  
-@@ -686,6 +854,14 @@
+@@ -677,7 +967,13 @@
+     sharded in every layout: a rank writes only its own row range.
+     """
+ 
+-    def __init__(self, num_embeddings: int, dim: int, layer_id: int):
++    def __init__(
++        self,
++        num_embeddings: int,
++        dim: int,
++        layer_id: int,
++        head_sizes: Optional[tuple[int, ...]] = None,  # [DSV41 disk]
++    ):
+         super().__init__()
+         self.dim = dim
+         self.tp_size = get_parallel().tp_size
+@@ -686,6 +982,10 @@
          row_end = num_embeddings * (tp_rank + 1) // self.tp_size
          self.rows = row_end - self.row_start
          self.host_table: Optional[_HostTable] = None
-+        self.disk: Optional[_DiskEngramRows] = None
-+        if _DSV41_ENGRAM_DISK:
-+            # Tech2Wild 2026-09-14: rows stay on disk. No weight/scale parameters, and the
-+            # patched weight iterator skips these tensors, so nothing is loaded for them.
-+            self.disk = _DiskEngramRows(layer_id, self.row_start, self.rows, dim)
-+            self.weight = None
-+            self.scale = None
++        self.disk: Optional[DiskEngramRows] = None  # [DSV41 disk]
++        if engram_disk_enabled():  # [DSV41 disk]
++            self._init_disk(num_embeddings, dim, layer_id, head_sizes, tp_rank)
 +            return
          if envs.SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE.get():
              self._init_host_table(num_embeddings, dim, layer_id)
          else:
-@@ -793,6 +969,8 @@
+@@ -701,6 +1001,27 @@
+             )
+         self.weight.weight_loader = self._load_rows
+         self.scale.weight_loader = self._load_rows
++
++    def _init_disk(self, num_embeddings, dim, layer_id, head_sizes, tp_rank):
++        """[DSV41 disk] Own whole hash heads and read their rows from disk."""
++        assert head_sizes is not None and sum(head_sizes) == num_embeddings, (
++            "engram disk mode needs the table's hash-column sizes"
++        )
++        lo, hi = head_aligned_row_range(head_sizes, tp_rank, self.tp_size)
++        self.row_start, self.rows = lo, hi - lo
++        root = _engram_disk_root(layer_id, lo, hi)
++        self.disk = DiskEngramRows(root, layer_id, num_embeddings, dim, lo, hi)
++        # Empty placeholders registered as buffers, not parameters: no memory is
++        # reserved and the checkpoint rows have nothing to load into
++        # (DeepseekV4ForCausalLM.load_weights skips them in disk mode).
++        self.register_buffer("weight", torch.empty(0, dtype=torch.float8_e4m3fn), persistent=False)
++        self.register_buffer("scale", torch.empty(0, dtype=torch.float8_e8m0fnu), persistent=False)
++        logger.info(
++            "engram disk: layer %d rank %d rows [%d, %d) from %s (%s)",
++            layer_id, tp_rank, lo, hi, self.disk.w_path,
++            "graph reader " + os.environ["SGLANG_DSV41_ENGRAM_ROWIO"]
++            if os.environ.get("SGLANG_DSV41_ENGRAM_ROWIO") else "eager only",
++        )
+ 
+     def _init_host_table(self, num_embeddings: int, dim: int, layer_id: int):
+         layout = _HostTable.choose_layout(
+@@ -793,6 +1114,8 @@
  
      def _owned_rows(self, indices: torch.Tensor) -> torch.Tensor:
          """Rows of `indices` this rank's shard holds, zero for the rest."""
-+        if self.disk is not None:
-+            return _disk_lookup(self.disk, indices)
++        if self.disk is not None:  # [DSV41 disk]
++            return self.disk.lookup(indices, self._empty(indices))
          if self.rows == 0:
              return self._empty(indices).zero_()
          if self.host_table is None and (
+@@ -910,7 +1233,10 @@
+         self.clamp_value = 1e-6
+         dim, hc_mult = config.hidden_size, config.hc_mult
+         self.embed = EngramEmbedding(
+-            layout.num_embeddings[self.layer_hash_index], layout.head_dim, layer_id
++            layout.num_embeddings[self.layer_hash_index],
++            layout.head_dim,
++            layer_id,
++            head_sizes=engram_head_sizes(layout, self.layer_hash_index),  # [DSV41 disk]
+         )
+         n_hash_cols = (layout.max_ngram_size - 1) * layout.n_heads
+         self.wkv = ReplicatedLinear(

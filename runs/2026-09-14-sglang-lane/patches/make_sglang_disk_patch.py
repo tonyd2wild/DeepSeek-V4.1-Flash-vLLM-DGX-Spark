@@ -349,7 +349,23 @@ BACKEND_EDITS = [
     ),
 ]
 
-patch("sglang/srt/layers/engram.py", ENGRAM_EDITS, "engram.py")
+# engram.py v2 (14:15): the design agent's full version (our code, marked "[DSV41 disk]": whole-hash-head
+# ownership that matches the node-local copies, an eager memmap path, and a CUDA-graph path that runs the
+# native reader dsv41_rowio.cpp as a host node) replaces the anchored-edit version above, which needed
+# breakable decode graphs that upstream V4.1 does not support. Made from the image's original (md5 checked).
+import hashlib
+import shutil
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+orig = os.path.join(SRC, "sglang/srt/layers/engram.py")
+assert hashlib.md5(open(orig, "rb").read()).hexdigest() == "3d2006a91c019c29c2ba81fa2c0296e7", "image engram.py changed"
+shutil.copy(os.path.join(HERE, "src", "engram.py"), os.path.join(OUT, "engram.py"))
+diff = difflib.unified_diff(open(orig).read().splitlines(True), open(os.path.join(OUT, "engram.py")).read().splitlines(True),
+                            "a/sglang/srt/layers/engram.py", "b/sglang/srt/layers/engram.py")
+open(os.path.join(OUT, "engram.py.diff"), "w").writelines(diff)
+print("engram.py: agent version (v2) copied from src/engram.py")
+shutil.copy(os.path.join(HERE, "src", "libdsv41_rowio.so"), os.path.join(OUT, "libdsv41_rowio.so"))
+shutil.copy(os.path.join(HERE, "src", "dsv41_rowio.cpp"), os.path.join(OUT, "dsv41_rowio.cpp"))
 patch("sglang/srt/model_loader/weight_utils.py", WEIGHT_EDITS, "weight_utils.py")
 patch("sglang/kernels/ops/attention/flash_mla_sm120.py", FLASH_EDITS, "flash_mla_sm120.py")
 patch("sglang/srt/layers/attention/deepseek_v4_backend.py", BACKEND_EDITS, "deepseek_v4_backend.py")
@@ -357,5 +373,6 @@ open(os.path.join(OUT, "mounts.txt"), "w").write(
     "engram.py srt/layers/engram.py\nweight_utils.py srt/model_loader/weight_utils.py\n"
     "flash_mla_sm120.py kernels/ops/attention/flash_mla_sm120.py\n"
     "deepseek_v4_backend.py srt/layers/attention/deepseek_v4_backend.py\n"
+    "libdsv41_rowio.so srt/layers/libdsv41_rowio.so\n"
 )
 print("mounts.txt written")

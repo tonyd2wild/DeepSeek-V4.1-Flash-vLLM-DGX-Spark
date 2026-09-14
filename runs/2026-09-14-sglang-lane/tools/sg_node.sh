@@ -40,12 +40,13 @@ ARGS=(--model-path "$MODEL" --served-model-name deepseek-v4.1-flash
   --host 0.0.0.0 --port "$PORT"
   --context-length "$CTX" --mem-fraction-static "$MEMFRAC"
   --chunked-prefill-size "$CHUNK" --max-running-requests "$SEQS" --cuda-graph-max-bs-decode "$SEQS"
-  --min-free-slots-delay 1 --cuda-graph-backend-decode "${GRAPH_DECODE:-breakable}"
+  --min-free-slots-delay 1
   --speculative-algorithm DSPARK --speculative-draft-model-path "$MODEL" --speculative-dspark-block-size "$SPEC_BLOCK"
   --tool-call-parser deepseekv41 --reasoning-parser deepseek-v41
   --default-chat-template-kwargs '{"thinking": false}'
   --enable-multimodal --limit-mm-data-per-request "{\"image\": $IMAGES}")
 [ -n "$MAXTOK" ] && ARGS+=(--max-total-tokens "$MAXTOK")
+[ -n "${GRAPH_DECODE:-}" ] && ARGS+=(--cuda-graph-backend-decode "$GRAPH_DECODE")   # default: SGLang's full decode graph
 # shellcheck disable=SC2086
 docker run -d --name "$NAME" --gpus all --network host --ipc host \
   --shm-size 32g --memory 112g --memory-swap 112g \
@@ -56,7 +57,8 @@ docker run -d --name "$NAME" --gpus all --network host --ipc host \
   -e GLOO_SOCKET_IFNAME=enp1s0f0np0 -e NCCL_CROSS_NIC=0 -e NCCL_CUMEM_ENABLE=0 -e NCCL_NVLS_ENABLE=0 \
   -e NCCL_IB_MERGE_NICS=0 -e NCCL_IGNORE_CPU_AFFINITY=1 -e NCCL_MAX_NCHANNELS=8 -e NCCL_DEBUG=WARN \
   -e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:False \
-  -e SGLANG_DSV41_ENGRAM_DISK=1 -e SGLANG_DSV41_ENGRAM_DIR=/engram -e SGLANG_DSV41_ENGRAM_DISK_THREADS=${ENGRAM_THREADS:-128} \
+  -e SGLANG_DSV41_ENGRAM_DISK=1 -e SGLANG_DSV41_ENGRAM_DIR=/engram -e SGLANG_DSV41_ENGRAM_THREADS=${ENGRAM_THREADS:-128} \
+  -e SGLANG_DSV41_ENGRAM_ROWIO=/sgl-workspace/sglang/python/sglang/srt/layers/libdsv41_rowio.so -e DSV41_ENGRAM_IO_THREADS=${ENGRAM_IO_THREADS:-64} \
   $EXTRA_ENV \
   --entrypoint python3 "$IMAGE" -m sglang.launch_server "${ARGS[@]}" $EXTRA_ARGS
 echo "started $NAME rank=$R on $(hostname) model=$HOST_MODEL engram=$ENGRAM_HOST ctx=$CTX memfrac=$MEMFRAC chunk=$CHUNK seqs=$SEQS maxtok=${MAXTOK:-auto} patches=$(wc -l < "$PATCH_DIR/mounts.txt" 2>/dev/null || echo 0)"
