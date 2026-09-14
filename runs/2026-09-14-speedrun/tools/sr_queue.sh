@@ -7,7 +7,8 @@ D=/var/tmp/boot-results/speedrun
 WAIT=${1:?wait label}; FB=${2:?fallback label}; shift 2
 until grep -qE "SCREEN-DONE|SCREEN-FAIL|BOOT-FAIL" $D/run-$WAIT.status 2>/dev/null; do sleep 15; done
 echo "queue: $WAIT finished ($(tail -1 $D/run-$WAIT.status)) $(date -u +%T); queue: $*"
-if grep -q BOOT-FAIL $D/run-$WAIT.status || grep -q '"all_pass": false' $D/$WAIT/quality.json 2>/dev/null; then
+# NOBASE=1: the queued labels do not stack on <wait-label> (it is only an ordering point), so skip the base check.
+if [ -z "${NOBASE:-}" ] && { grep -q BOOT-FAIL $D/run-$WAIT.status || grep -q '"all_pass": false' $D/$WAIT/quality.json 2>/dev/null; }; then
   echo "base $WAIT failed to boot or failed the quality gate: not stacking on it; booting fallback $FB $(date -u +%T)"
   bash /root/sr_boot.sh sr-$FB-go.sh $FB-fallback; echo "queue done (fallback) $(date -u +%T)"; exit 0
 fi

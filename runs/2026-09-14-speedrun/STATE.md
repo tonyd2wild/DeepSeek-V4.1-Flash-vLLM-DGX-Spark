@@ -108,10 +108,33 @@ Owner: Tony (asleep). Operator: Claude (this session). This file is the source o
   - The final config is E02 plus the winners, validated with a full C1-C6 bench on a final boot.
 - **Quality gate** (`sr_quality.py`, inside `sr_screen.sh` from E02 on): count 1..100, JSON keys, runnable `is_prime` code, 17*23, prose not degenerate. A config that fails the gate cannot win.
 
+## SGLang option (agent memo, 06:40 UTC): stay on vLLM-EXL3 tonight
+- **SGLang has no EXL3 support** (no quant method; cuda-exl3 is vLLM-only). Switching means a different uncensored checkpoint, e.g. dealignai/DeepSeek-V4.1-Flash-UNCENSORED-FP8, on an untested stack. That's high bring-up risk tonight.
+- **MiaAI TP4 measured** (prose only):
+  - aggregate C1 45.4, C4 103.1, C8 114.1;
+  - TTFT 0.21-0.27 s;
+  - **prefill 3,350-3,782 tok/s**;
+  - 1M context with KV pinned at 8M.
+- **ecohash (SGLang TP4 on GB10):** 60 tok/s C1, 138 at C4.
+- **Ours (E01):** C1 57.4 aggregate (code 85, prose 37), C6 184, prefill ~1,400-1,500, KV 3.5M at 300K.
+- **Verdict:** SGLang wins prefill (2.4x), TTFT and context; decode is roughly equal (prose C1 +20% for SGLang; we lead C6). A later half-day window could try MiaAI `68b34cfd0` with the dealignai checkpoint. Steps are in the memo (scratchpad `mia/`).
+- **Ideas ported tonight:**
+  - NCCL ch8 (E01, done);
+  - b12x MXFP8 (E03);
+  - `expandable_segments:False` (E08; ecohash saw 2.45x KV on vLLM);
+  - MiaAI's smaller prefill chunks (1,024) as a possible later test.
+
 ## PR pre-checks (done early, to post at 11:00 UTC)
 - **PR #4:** applies cleanly to main. Its `patch/verify_diffs.sh`, run against a local vLLM checkout at `e47aa780b` (`scratchpad/vllm-e47`), passes 7/7 full diffs and 4/4 per-fix chains. Merge at 11:00.
 - **PR #5:** `verify5.py` compiles, and the logic matches hyudryu's report. It includes a stray `build/__pycache__/verify5.cpython-314.pyc`: merge it, then remove the pyc and add `__pycache__/` to `.gitignore` in a follow-up commit.
 - Drafts are in `DRAFT-issue-pr-replies.md`. Re-read every thread for new comments before posting.
+
+## Queues running on Reddie (detached)
+- **queue-1** (`queue-1.log`): after E02 → E03 `e03-b12x`, E04 `e04-bss`, E05 `e05-k10`. Falls back to `e01-nccl-ch8` if E02 fails boot or quality.
+- **queue-2** (`queue-2.log`, NOBASE=1): after E05 → E06 `e06-mb16k` (MAX_BATCHED 16384), E07 `e07-shexp` (VLLM_SHARED_EXPERTS_STREAM_TOKEN_THRESHOLD=8192), E08 `e08-noexpseg` (expandable_segments:False). All three stack on E02. Fallback is `e02-ch8-fast`.
+- Expected timeline, about 20 min each: E03 ~06:52, E04 ~07:12, E05 ~07:32, E06 ~07:52, E07 ~08:12, E08 ~08:32.
+- Then: the combination of winners plus a full C1-C6 run by ~09:30.
+- **To stop a queue:** `touch /var/tmp/boot-results/speedrun/queue.stop` (checked before each label), or `pkill -f "sr_queue.sh"`. Do NOT kill a running `sr_run.sh` mid-boot.
 
 ## Runner notes
 - Chains run DETACHED on Reddie (`setsid nohup`), so they survive losing the Tailscale connection.
@@ -122,6 +145,7 @@ Owner: Tony (asleep). Operator: Claude (this session). This file is the source o
 | # | change | boot | KV | C1 agg | C3 agg | C6 agg | code C1 | prefill 32K | verdict |
 |---|---|---|---|---|---|---|---|---|---|
 | 00b | baseline SCREEN (as found, warm) | - | 3,274,912 | 54.3 | 114.8 | 166.3 | 80.6 | 1,454 (full-bench cold) | reference |
+| E02 | E01 + Engram FAST staging (`dsv41-exl3-sr1`, `DSV41_ENGRAM_FAST=1`) | 534 s, OK ("Engram FAST staging on" logged) | pending | | | | | | screen running 06:40 |
 | E01 | `NCCL_MAX_NCHANNELS=8` | 8.7 min, OK | 3,512,346 (+7.3%) | 57.4 (+5.8%) | 117.3 (+2.2%) | 184.2 (+10.7%) | 85.4 (+5.9%) | 1,486 (+2%) | **KEEP** (bot-lab-21 saw +11% C6) |
 
 ## Findings so far

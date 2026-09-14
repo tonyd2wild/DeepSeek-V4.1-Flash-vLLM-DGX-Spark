@@ -15,6 +15,7 @@ python3 /root/sr_quality.py $O > $O/quality.txt 2>&1; cat $O/quality.txt
 python3 /root/v41bench.py --base http://127.0.0.1:8000/v1 --model deepseek-v4.1-flash --label $LBL-warm --out $O/warm --levels 1 --prefill "" > $O/warm.txt 2>&1 || true
 python3 /root/v41bench.py --base http://127.0.0.1:8000/v1 --model deepseek-v4.1-flash --label $LBL --out $O --levels $LV --prefill $PF --notes "speed run 2026-09-14 SCREEN $LBL" > $O/bench.txt 2>&1
 echo "bench exit $? $(date -u +%T)"
+bash /root/probe_prefill.sh $LBL > $O/probe.txt 2>&1   # ~40K-token cold prefill: GPU util + worker threads
 grep -E "GPU KV cache size" $O/kv-context.txt | tail -1
 grep -E "^A |^B |^C |^D |^E " $O/idletest.txt | cut -c1-120
 tail -30 $O/bench.txt
