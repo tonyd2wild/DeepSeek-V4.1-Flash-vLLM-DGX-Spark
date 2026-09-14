@@ -30,7 +30,8 @@ Built by `patches/make_sglang_disk_patch.py` from the image's own files with anc
 
 - **KV pool: 7,748,608 tokens** at memory fraction 0.80 (SGLang's own log: 1,670.75 bytes per token per GPU, 12.64 GB for KV), about 2.06x the vLLM lane's 3,757,748 on the same four Sparks. Measured on boot `sg2` before it failed.
 - **Weights loaded** with Engram on disk: 74.68 GB per GPU plus the 2.08 GB DSpark drafter, with the uncensored overlay and expert parallel 4.
-- **Not serving yet.** Two boots failed, so the lane stopped and the vLLM config was restored:
+- **Serving since 14:28 UTC (boot `sg3`)**, KV pool **7,012,096 tokens** at 300K context (the drafter's extra memory on this boot left 11.49 GB for KV), full CUDA graphs for target and draft verify, Engram rows read from disk by the native reader inside the graphs.
+- Before that, two boots failed (the vLLM config was restored in between, then stopped again at Tony's request):
   1. `sg1`: the MXFP4 MoE kernel needs 128-aligned expert slices; TP-splitting each expert gives 576. Fixed with expert parallel 4.
   2. `sg2`: upstream V4.1 code does not support breakable decode CUDA graphs (its Engram hashing needs a context only the piecewise backend sets), and our disk lookup needs a graph break. Next step: a graph-safe native row reader so decode can use the full CUDA graph.
 - No speed numbers yet.
