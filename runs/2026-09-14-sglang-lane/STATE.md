@@ -62,6 +62,12 @@ Goal (Tony, 13:10 UTC): stand up DeepSeek-V4.1-Flash UNCENSORED on SGLang across
 - **13:55:19 boot `sg2`** (patch v2, `--ep-size 4`). 14:01:51 head: "Load weight end. elapsed=332.64 s ... avail mem=37.36 GB, mem usage=74.68 GB" (the EP fix works); "Engram DISK layer 1: rows [0, 96001542) from /engram"; KV dtype fp8_e4m3. Workers (14:02): Engram DISK rows exactly as planned; NFS fallback rows 1,344 / 1,325 (Spark4), 972 / 947 (Asusi), 0 (Bluey); 34-35 GiB free on each worker after weights.
 - **13:46 boot `sg1` started** (`/root/sg_up.sh sg1`, log `/var/tmp/boot-results/sglang/boot-sg1.log`): stops vLLM on all 4 nodes, then SGLang ranks 3, 2, 1, 0.
 
+## 15:26-15:28 back to vLLM: blocked by Reddie's GPU state
+- Tony 15:26 "Bring up VLLM", then "with 500k though". `asusi:~/exl3tp4b-ablit-best500k-go.sh` = the best go script plus `export MAXLEN=500000` (the 300K `exl3tp4b-ablit-best-go.sh` is unchanged). Boot with `GO=exl3tp4b-ablit-best500k-go.sh bash /root/restore_exl3tp4b_ablit_best.sh` (or `/root/vllm_back_500k.sh`).
+- Both restore attempts (15:26 at 300K, 15:27 at 500K) stopped at the burn gate: **Reddie 33.4 TFLOPS at 721 MHz, 21 W under load** (healthy 75-90); Asusi 91.3, Bluey 88.5, Spark4 91.2. Not launched, nothing collided.
+- Reddie's GPU came back from the 15:22 hang and reboot in the low clock/power state (the GB10 clock-latch; the known fix is an AC-cut power cycle, TUNING_BACKLOG B4.11). Clocks are Tony's to change; needs Tony or Kai to unplug Reddie for ~30 s, then boot the 500K config.
+- Tony also asked to keep an SGLang lane in the repo: finish `runs/2026-09-14-sglang-lane/` and link it from the top-level README as experimental.
+
 ## sg5 numbers (mem-fraction 0.82, ctx 500K), bench cut off by the 15:22 hang; measured under memory pressure
 - C1-C6 aggregate (mean of 8 categories): 23.38 / 42.97 / 55.15 / 75.01 / 82.89 / 82.75 tok/s (vLLM best run 2: 58.27 / 96.0 / 128.29 / 152.44 / 171.11 / 189.97).
 - C1 per-stream: code 34.71, JSON 27.06, math 34.01, prose 16.25, narrative 15.57 (vLLM: 85.2, 65.0, 87.9, 41.0, 36.3).

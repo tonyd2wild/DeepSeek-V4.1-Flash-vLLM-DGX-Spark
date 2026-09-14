@@ -1,6 +1,25 @@
 # SGLang lane, 2026-09-14
 
-**Status: in progress.** The live log is [`STATE.md`](STATE.md).
+**Status: experimental, not the serving config.** It boots and serves, and holds a 2.5x larger KV pool than the vLLM lane, but on this configuration it decodes 2-2.5x slower and ran the nodes out of memory under the full bench. The vLLM speed-run config stays the default. The live log is [`STATE.md`](STATE.md).
+
+## Result vs the vLLM lane (same bench, same prompts)
+
+Boot `sg5` (mem-fraction 0.82, 500K context). The bench was cut off by a node hang after the 32K prefill, and the numbers were taken while the nodes were under memory pressure, so they understate SGLang somewhat; the gap is still large.
+
+| | SGLang `sg5` | vLLM best (run 2) |
+|---|---|---|
+| C1 / C2 / C3 aggregate tok/s | 23.4 / 43.0 / 55.2 | 58.3 / 96.0 / 128.3 |
+| C4 / C5 / C6 aggregate tok/s | 75.0 / 82.9 / 82.8 | 152.4 / 171.1 / 190.0 |
+| code / prose, 1 stream | 34.7 / 16.3 | 85.2 / 41.0 |
+| cold prefill at 2,950 / 11,592 / 46,810 tokens | 711 / 800 / 652 | 1,836 / 1,997 / 2,014 |
+| counting speed, step time | 45.8 tok/s, 127 ms | 117.6 tok/s, 49 ms |
+| KV pool | **9,323,776 tokens** (500K ctx) | 3,757,748 tokens (300K ctx) |
+
+**Memory:** at 0.80 and at 0.82, long prefills in the bench drove the workers to ~0 GB available (Bluey 165 MB, Spark4 0 GB, swap in use) and hung the head node twice. The container `--memory 112g` limit did not prevent it. Before another attempt: lower `--mem-fraction-static` (~0.72-0.75), `--chunked-prefill-size 1024`, and a memory limit that is enforced for GPU allocations.
+
+## How to run it
+
+`bash /root/sg_up.sh <label>` on Reddie (stops vLLM, starts the 4 ranks, polls until serving), `bash /root/sg_final.sh <label>` for the full bench, `bash /root/sg_down.sh` to stop. Back to vLLM: `bash /root/sg_down.sh; bash /root/restore_exl3tp4b_ablit_best.sh`. Knobs: `MEMFRAC`, `CTX`, `CHUNK`, `SEQS`, `EP` in the environment of `sg_up.sh`.
 
 Goal: serve DeepSeek-V4.1-Flash UNCENSORED on SGLang across the same four DGX Sparks and compare it head to head with the vLLM speed-run config (`runs/2026-09-14-speedrun`) on the same bench: C1-C6 over all categories, cold prefill, TTFT and KV pool.
 
