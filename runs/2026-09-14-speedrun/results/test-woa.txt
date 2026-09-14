@@ -1,0 +1,64 @@
+=== wo_a test on Bluey 06:59:04
+attention.diff
+mounts.add.txt
+new
+o_proj.diff
+orig
+test_woa_sm12x.py
+woa_sm12x.py
+MemAvailable 26G
+device=NVIDIA GB10 sm_121  G=2 R=1024 K=4096
+[restore] BF16->FP8 bit-exact: PASS
+INFO 09-14 06:59:23 [woa_sm12x.py:173] DSV41 wo_a: native MXFP8 via B12xMxfp8LinearKernel, 2 groups x [1024, 4096] per rank (replaces BF16 emulation).
+
+[b12x] installed: wo_a.weight now (0,)
+    T     relA      cosA     relB  qdq_relA  bf16_us   new_us bf16_g_us  new_g_us  graph
+    1   0.0273  0.999629  0.00166    0.0273     26.1    198.0      27.2      29.4   PASS
+    2   0.0266  0.999647  0.00168    0.0265     32.1    200.6      24.5      57.7   PASS
+    4   0.0271  0.999633  0.00168    0.0270     32.2    200.8      25.0      55.6   PASS
+    6   0.0262  0.999658  0.00167    0.0261     32.7    199.9      25.0      55.6   PASS
+    8   0.0268  0.999643  0.00165    0.0267     32.2    198.4      25.1      53.5   PASS
+   12   0.0267  0.999644  0.00167    0.0266     32.6    205.1      25.2      47.4   PASS
+   16   0.0268  0.999641  0.00166    0.0267     35.2    202.3      28.7      45.4   PASS
+   24   0.0268  0.999642  0.00167    0.0267     39.7    202.7      32.9      41.5   PASS
+   32   0.0268  0.999642  0.00166    0.0267     40.4    202.7      33.0      35.1   PASS
+   64   0.0267  0.999644  0.00166    0.0266     32.1    201.8      24.9      37.2   PASS
+  256   0.0268  0.999641  0.00166    0.0267     92.2    208.1      82.3      59.8   PASS
+ 2048   0.0268  0.999642  0.00166    0.0267    649.5    558.7     649.7     514.1   PASS
+   T=1 BF16 bmm eff. BW 213 GB/s; FP8 bytes would take 39.3 us at same BW
+INFO 09-14 06:59:28 [woa_sm12x.py:173] DSV41 wo_a: native MXFP8 via FlashInferCutlassMxfp8LinearKernel, 2 groups x [1024, 4096] per rank (replaces BF16 emulation).
+
+[fi] installed: wo_a.weight now (0,)
+    T     relA      cosA     relB  qdq_relA  bf16_us   new_us bf16_g_us  new_g_us  graph
+2026-09-14 06:59:30,062 - INFO - core.py:447 - flashinfer.jit: Building JIT module mxfp8_quantization_sm100; this can take several minutes on first use.
+    1   0.0273  0.999629  0.00166    0.0273     48.5    211.0      29.2     150.0   PASS
+    2   0.0266  0.999647  0.00168    0.0265     32.1    211.6      24.3     149.9   PASS
+    4   0.0271  0.999633  0.00168    0.0270     32.1    210.5      24.5     145.8   PASS
+    6   0.0262  0.999658  0.00167    0.0261     32.2    210.8      25.0     145.7   PASS
+    8   0.0268  0.999643  0.00165    0.0267     32.3    207.0      25.1     142.1   PASS
+   12   0.0267  0.999644  0.00167    0.0266     32.3    206.9      25.2     138.5   PASS
+   16   0.0268  0.999641  0.00166    0.0267     36.2    203.8      29.1     135.2   PASS
+   24   0.0268  0.999642  0.00167    0.0267     40.3    199.3      32.6     127.3   PASS
+   32   0.0268  0.999642  0.00166    0.0267     40.3    157.5      33.1      43.3   PASS
+   64   0.0267  0.999644  0.00166    0.0266     32.2    158.7      24.8      43.3   PASS
+  256   0.0268  0.999641  0.00166    0.0267     91.7    175.1      81.9      82.1   PASS
+ 2048   0.0268  0.999642  0.00166    0.0267    651.7    614.3     628.1     609.2   PASS
+   T=1 BF16 bmm eff. BW 215 GB/s; FP8 bytes would take 39.1 us at same BW
+
+[fi-bmm] (experimental, weight re-quantized by FlashInfer)
+    1 relA=inf us=118.1
+    2 relA=inf us=114.9
+    4 relA=inf us=121.0
+    6 relA=inf us=114.0
+    8 relA=nan us=117.1
+   12 relA=0.6798 us=110.0
+   16 relA=nan us=64.6
+   24 relA=nan us=65.9
+   32 relA=nan us=64.9
+   64 relA=nan us=64.8
+  256 relA=0.0268 us=83.2
+ 2048 relA=0.0268 us=618.4
+
+RESULT: PASS
+rc=0
+=== done 07:00:16

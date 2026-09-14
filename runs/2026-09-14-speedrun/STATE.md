@@ -151,11 +151,24 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
   - queue-1 was stopped. Its E03 run continued as `sr_run.sh e03-b12x`.
   - **queue-1b** (`queue-1b.log`, NOBASE=1): after E03, runs E09 `e09-thr128`, then E04 `e04-bss`, then E05 `e05-k10`.
   - queue-2 is unchanged: it waits for E05, then runs E06, E07, E08.
+- **queue-3** (`queue-3.log`, NOBASE=1): after E08, runs E10 `e10-idxlogits` (`VLLM_SPARSE_INDEXER_MAX_LOGITS_MB=1024`, prefill sub-chunks).
+- Chain: E03 → E09 → E04 → E05 → E06 → E07 → E08 → E10, about 20 min each, ending ~09:20 UTC. After that: combine the winners (one boot), then the full C1-C6 run (`sr_final.sh`).
 - **Gotcha:** never `pgrep -f <pattern>` and `kill` from an ssh `bash -c` whose own command line contains the pattern: it kills your own shell. Use a script file (`/root/start_q1b.sh` does this).
 - **queue-1** (`queue-1.log`): after E02 → E03 `e03-b12x`, E04 `e04-bss`, E05 `e05-k10`. Falls back to `e01-nccl-ch8` if E02 fails boot or quality.
 - **queue-2** (`queue-2.log`, NOBASE=1): after E05 → E06 `e06-mb16k` (MAX_BATCHED 16384), E07 `e07-shexp` (VLLM_SHARED_EXPERTS_STREAM_TOKEN_THRESHOLD=8192), E08 `e08-noexpseg` (expandable_segments:False). All three stack on E02. Fallback is `e02-ch8-fast`.
 - Expected timeline, about 20 min each: E03 ~06:52, E04 ~07:12, E05 ~07:32, E06 ~07:52, E07 ~08:12, E08 ~08:32.
 - Then: the combination of winners plus a full C1-C6 run by ~09:30.
+- **07:05 switch to a DYNAMIC queue.** Queues 2, 3 and 4 (still waiting) were killed by `/root/switch_to_dq.sh`. `/root/sr_dq.sh e05-k10 e02-ch8-fast` (`dq.log`, started by `/root/start_dq.sh`) waits for E05, then pops labels one at a time from `/var/tmp/boot-results/speedrun/queue.txt`. **To reorder, insert or drop: write `queue.txt.new` and `mv` it over `queue.txt`.** Done labels go to `queue.done`. Two consecutive BOOT-FAILs boot the fallback `e02-ch8-fast` and stop.
+  - queue-1b (E09 running, then E04, E05) is unchanged.
+  - Order at 07:05: e12-ch4, e14-idxsplit (drop it if the prehook test fails), e06-mb16k, e10-idxlogits, e15-tree, e11-ctx1m, e07-shexp, e08-noexpseg, e13-gmu85, e16-ch2.
+  - New go scripts: `sr-e14-idxsplit-go.sh` (patch set `dsv41-exl3-sr2` = sr1 + the split indexer, md5 f87bc894, on all 4 nodes; `DSV41_INDEXER_TP_SPLIT=1`), `sr-e15-tree-go.sh` (`NCCL_ALGO=Tree`), `sr-e16-ch2-go.sh` (`NCCL_MAX_NCHANNELS=2`).
+  - Prehook armed before E04: the idxsplit exactness test on Bluey (`test-idxsplit.txt`).
+- **Gotcha 2:** `ps -eo args | grep -q <pattern>` from an ssh command whose own text has the pattern matches the tailscaled login shell. Anchor it (`grep -q "^bash /root/sr_dq\.sh"`) and run checks from script files.
+- **(superseded) queue-4** (`queue-4.log`, NOBASE=1, started 06:57 by `/root/start_q4.sh`): after E10, runs E11 `e11-ctx1m` (MAXLEN=1048576; the model's native max_position_embeddings is 1,048,576 with yarn x16), E12 `e12-ch4` (NCCL_MAX_NCHANNELS=4), E13 `e13-gmu85` (GMU 0.85; 28-29 GB free per node while serving at 0.80). All stack on E02. Fallback `e02-ch8-fast`.
+- **One-shot prehook** (`sr_run.sh` runs `/var/tmp/boot-results/speedrun/prehook.sh` once before the next boot, while the old server is idle): the wo_a standalone GPU test on Bluey (skips if under 20 GB free) → `test-woa.txt`, then renamed `prehook.sh.done-before-<label>`.
+- **wo_a native MXFP8 test (06:59, Bluey, prehook): DROP.** Numerics PASS (relA 0.027, equal to plain FP8 quant-dequant error), graph replay PASS. The native path is slower at decode sizes: under CUDA graphs 142-150 us at T=1-24 vs 25-33 us for today's BF16 bmm; equal only near T=2048. Full output in `results/test-woa.txt`.
+- **Indexer prefill TP-split draft** (agent, `scratchpad/idxsplit/`): one file, `sparse_attn_indexer.py`, flag `DSV41_INDEXER_TP_SPLIT=1`. Projected prefill +27% at 47K and +48% at 93K (estimate). Needs the GPU exactness test before any boot.
+- **DSpark k rule** (`vllm/config/speculative.py`): n_predict = dspark_block_size (5); k above 5 must be a multiple of 5. So k=1-5 and 10 are valid; k=4 is a possible prose lever.
 - **To stop a queue:** `touch /var/tmp/boot-results/speedrun/queue.stop` (checked before each label), or `pkill -f "sr_queue.sh"`. Do NOT kill a running `sr_run.sh` mid-boot.
 
 ## Runner notes
@@ -166,6 +179,7 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 ## Experiment log
 | # | change | boot | KV | C1 agg | C3 agg | C6 agg | code C1 | prefill 32K | verdict |
 |---|---|---|---|---|---|---|---|---|---|
+| E03 | E02 + b12x MXFP8 dense (`vllm-dsv41:exl3b`, other MXFP8 kernels disabled) | 514 s, OK ("Using B12xMxfp8LinearKernel") | 3,484,154 | 54.6 | 118.1 | 188.1 | 82.1 | 1,691; 8K 1,566; 39.6K probe 1,914 (E02 2,016) | **DROP**: slower than E02 on C1, prefill and the probe. JSON C1 59.0 vs E02 84.0 shows JSON is noisy run to run |
 | 00b | baseline SCREEN (as found, warm) | - | 3,274,912 | 54.3 | 114.8 | 166.3 | 80.6 | 1,454 (full-bench cold) | reference |
 | E02 | E01 + Engram FAST staging (`dsv41-exl3-sr1`, `DSV41_ENGRAM_FAST=1`) | 534 s, OK ("Engram FAST staging on" logged) | 3,505,010 (+7.0%) | 58.8 (+8.4%) | 119.1 (+3.8%) | 189.5 (+13.9%) | 83.5 (+3.5%) | **1,751** (+20% vs baseline cold 1,454); 8K 1,665 (+15%) | **KEEP**. Quality PASS 5/5. JSON C1 84.0 (+32%). Idle back-to-back count 110.6. Prefill probe GPU util still 43-47% |
 | E01 | `NCCL_MAX_NCHANNELS=8` | 8.7 min, OK | 3,512,346 (+7.3%) | 57.4 (+5.8%) | 117.3 (+2.2%) | 184.2 (+10.7%) | 85.4 (+5.9%) | 1,486 (+2%) | **KEEP** (bot-lab-21 saw +11% C6) |

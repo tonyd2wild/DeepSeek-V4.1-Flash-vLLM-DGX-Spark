@@ -1,0 +1,19 @@
+--- a/dsv41-exl3-sr1/attention.py
++++ b/dsv41-exl3-sr1/attention.py
+@@ -204,6 +204,16 @@
+     def _uses_fp8_ds_mla_layout(self) -> bool:
+         """Return whether this instance stores fp8 KV in fp8_ds_mla layout."""
+         return self.use_fp8_ds_mla_layout
++
++    def process_weights_after_loading(self, act_dtype: torch.dtype) -> None:
++        """Tech2Wild/Kai 2026-09-14: deferred post-load hook; the loader calls it
++        after every quant method has run (target and DSpark drafter alike). With
++        DSV41_WOA_B12X set on SM12x it re-packs the BF16-emulated wo_a as native
++        MXFP8 per-group linears (woa_sm12x.py). No-op otherwise."""
++        del act_dtype
++        from vllm.models.deepseek_v4_1.woa_sm12x import maybe_install_woa_sm12x
++
++        maybe_install_woa_sm12x(self)
+ 
+     def __init__(
+         self,

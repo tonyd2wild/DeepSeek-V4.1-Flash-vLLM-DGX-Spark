@@ -16,6 +16,7 @@ python3 /root/v41bench.py --base http://127.0.0.1:8000/v1 --model deepseek-v4.1-
 python3 /root/v41bench.py --base http://127.0.0.1:8000/v1 --model deepseek-v4.1-flash --label $LBL --out $O --levels $LV --prefill $PF --notes "speed run 2026-09-14 SCREEN $LBL" > $O/bench.txt 2>&1
 echo "bench exit $? $(date -u +%T)"
 bash /root/probe_prefill.sh $LBL > $O/probe.txt 2>&1   # ~40K-token cold prefill: GPU util + worker threads
+case $LBL in *ctx1m*) echo "needle 524288 $(date -u +%T)"; python3 /root/v41needle.py --targets 524288 --depth 0.5 --out $O/needle.json > $O/needle.txt 2>&1; tail -5 $O/needle.txt;; esac
 grep -E "GPU KV cache size" $O/kv-context.txt | tail -1
 grep -E "^A |^B |^C |^D |^E " $O/idletest.txt | cut -c1-120
 tail -30 $O/bench.txt

@@ -1,0 +1,326 @@
+--- src/dsv41-exl3-sr1/sparse_attn_indexer.py	2026-09-11 14:36:05
++++ idxsplit/sparse_attn_indexer.py	2026-09-14 02:58:16
+@@ -2,6 +2,8 @@
+ # SPDX-FileCopyrightText: Copyright contributors to the vLLM project
+ """Custom Sparse Attention Indexer layers."""
+ 
++import os
++
+ import torch
+ 
+ import vllm.envs as envs
+@@ -9,7 +11,12 @@
+ from vllm._aiter_ops import rocm_aiter_ops
+ from vllm.compilation.breakable_cudagraph import eager_break_during_capture
+ from vllm.config import CUDAGraphMode, get_current_vllm_config
+-from vllm.distributed import get_dcp_group, get_pcp_group
++from vllm.distributed import (
++    get_dcp_group,
++    get_pcp_group,
++    get_tp_group,
++    model_parallel_is_initialized,
++)
+ from vllm.forward_context import get_forward_context
+ from vllm.logger import init_logger
+ from vllm.model_executor.custom_op import CustomOp
+@@ -130,6 +137,260 @@
+     )
+ 
+ 
++# ---------------------------------------------------------------------------
++# Tech2Wild 2026-09-14: DSV41_INDEXER_TP_SPLIT (default off).
++#
++# The lightning indexer is ReplicatedLinear, so every TP rank scored every
++# prefill query row of a chunk against the whole gathered index K and ran the
++# row top-k on all of them. With the split on, rank r scores only a contiguous
++# 1/tp slice of the chunk's rows (same kernels, same per-row arguments), and one
++# all-gather along the row dim gives every rank the full [rows, topk] int32
++# index block. On the candidate-source layer the [rows, candidate_topk_blocks]
++# candidate block ids ride in the same all-gather. Decode rows are untouched.
++#
++# Every gate input is identical on all TP ranks (the env is compared at model
++# build; row counts come from the broadcast scheduler output), so all ranks take
++# the same branch and issue the same collectives in the same order.
++# ---------------------------------------------------------------------------
++_DSV41_TP_SPLIT_ENABLED = os.environ.get("DSV41_INDEXER_TP_SPLIT", "0") == "1"
++_DSV41_TP_SPLIT_MIN = int(os.environ.get("DSV41_INDEXER_TP_SPLIT_MIN", "512"))
++# Per-rank row count is a multiple of this, so each rank's slice of the int32
++# row-bound tensors starts 256-byte aligned.
++_DSV41_TP_SPLIT_ROW_ALIGN = 64
++_dsv41_tp_split_env_checked = False
++
++
++def _dsv41_check_tp_split_env_consistent() -> None:
++    """Fail at model build if the TP ranks disagree on the split settings.
++
++    The split adds an all-gather inside the indexer. A rank without the env
++    would skip it and hang the others at the first long prefill, so every rank
++    (split on or off) compares the settings once over the TP CPU group.
++    """
++    global _dsv41_tp_split_env_checked
++    if _dsv41_tp_split_env_checked:
++        return
++    _dsv41_tp_split_env_checked = True
++    if not model_parallel_is_initialized():
++        return
++    tp_group = get_tp_group()
++    if tp_group.world_size <= 1:
++        return
++    mine = (_DSV41_TP_SPLIT_ENABLED, _DSV41_TP_SPLIT_MIN)
++    everyone: list = [None] * tp_group.world_size
++    torch.distributed.all_gather_object(everyone, mine, group=tp_group.cpu_group)
++    if any(tuple(x) != mine for x in everyone):
++        raise RuntimeError(
++            "DSV41_INDEXER_TP_SPLIT / DSV41_INDEXER_TP_SPLIT_MIN differ across "
++            f"TP ranks: {everyone}. Set them identically on every node."
++        )
++    if _DSV41_TP_SPLIT_ENABLED:
++        logger.info(
++            "DSV41_INDEXER_TP_SPLIT on: indexer prefill rows split across %d TP "
++            "ranks for chunks with >= %d rows.",
++            tp_group.world_size,
++            _DSV41_TP_SPLIT_MIN,
++        )
++
++
++def _dsv41_tp_split_world(num_rows: int, dcp_world_size: int, use_pcp: bool) -> int:
++    """Number of ranks to split this prefill chunk's rows over (1 = unsplit)."""
++    if not _DSV41_TP_SPLIT_ENABLED or num_rows < _DSV41_TP_SPLIT_MIN:
++        return 1
++    # DCP/PCP already shard KV or tokens across ranks; XPU has its own kernels.
++    if dcp_world_size > 1 or use_pcp or not current_platform.is_cuda():
++        return 1
++    world = get_tp_group().world_size
++    if world <= 1:
++        return 1
++    # Chunks this large only run eagerly (captured graphs are decode-sized). The
++    # NCCL all-gather below must never be recorded into a CUDA graph.
++    assert not torch.cuda.is_current_stream_capturing(), (
++        f"DSV41_INDEXER_TP_SPLIT: a {num_rows}-row prefill chunk reached the "
++        "indexer during CUDA graph capture."
++    )
++    return world
++
++
++def _dsv41_tp_split_bounds(
++    num_rows: int, world: int, rank: int
++) -> tuple[int, int, int]:
++    """Rank's contiguous row slice [lo, hi) and the padded per-rank row count.
++
++    Rank r owns rows [r*per, r*per + n_r). Padding rows (and whole ranks past
++    the end) land at gathered positions >= num_rows, so gathered[:num_rows] is
++    the chunk's rows in their original order.
++    """
++    per = -(-num_rows // world)
++    align = _DSV41_TP_SPLIT_ROW_ALIGN
++    per = -(-per // align) * align
++    lo = min(rank * per, num_rows)
++    hi = min(lo + per, num_rows)
++    return lo, hi, per
++
++
++def _dsv41_prefill_rows_local(
++    q_rows: torch.Tensor,
++    q_scale_rows: torch.Tensor | None,
++    k_quant: torch.Tensor,
++    k_scale: torch.Tensor,
++    weights_rows: torch.Tensor,
++    ks_rows: torch.Tensor,
++    ke_rows: torch.Tensor,
++    topk_tokens: int,
++    per: int,
++    candidate_rows: torch.Tensor | None,
++    candidate_block_size: int,
++    candidate_write: bool,
++    use_fp4_cache: bool,
++) -> torch.Tensor:
++    """Indexer top-k for one contiguous slice of a prefill chunk's rows.
++
++    Same kernels, same per-row arguments and the same -1 pre-fill as the
++    unsplit loop body in sparse_attn_indexer(); only the row range differs.
++    Returns int32 [per, topk_tokens (+ candidate width when this layer writes
++    candidates)]; rows past the slice are -1 padding.
++    """
++    device = q_rows.device
++    n = q_rows.shape[0]
++    write_candidates = candidate_rows is not None and candidate_write
++    local_topk = torch.full(
++        (per, topk_tokens), -1, dtype=torch.int32, device=device
++    )
++    local_candidates = None
++    if write_candidates:
++        assert candidate_rows is not None
++        local_candidates = torch.full(
++            (per, candidate_rows.shape[1]), -1, dtype=torch.int32, device=device
++        )
++    if n > 0:
++        if use_fp4_cache:
++            q_cast = q_rows.view(torch.int8)
++            k_quant_cast = k_quant.view(torch.int8)
++            k_scale_cast = k_scale.view(torch.int32).squeeze(-1)
++        else:
++            q_cast = q_rows
++            k_quant_cast = k_quant
++            k_scale_cast = k_scale.view(torch.float32).squeeze(-1)
++        logits = fp8_fp4_mqa_logits(
++            (q_cast, q_scale_rows),
++            (k_quant_cast, k_scale_cast),
++            weights_rows,
++            ks_rows,
++            ke_rows,
++            clean_logits=False,
++        )
++        num_rows = logits.shape[0]
++        if candidate_rows is not None:
++            if candidate_write:
++                assert local_candidates is not None
++                _select_candidate_blocks(
++                    logits,
++                    ks_rows,
++                    ke_rows,
++                    local_candidates.shape[1],
++                    candidate_block_size,
++                    local_candidates[:n],
++                )
++            else:
++                _apply_candidate_mask(
++                    logits,
++                    ks_rows,
++                    ke_rows,
++                    candidate_rows,
++                    candidate_block_size,
++                )
++        ops.top_k_per_row_prefill(
++            logits,
++            ks_rows,
++            ke_rows,
++            local_topk[:n],
++            num_rows,
++            logits.stride(0),
++            logits.stride(1),
++            topk_tokens,
++        )
++    if local_candidates is not None:
++        return torch.cat((local_topk, local_candidates), dim=1)
++    return local_topk
++
++
++def _dsv41_scatter_gathered(
++    gathered: torch.Tensor,
++    num_rows: int,
++    token_start: int,
++    topk_indices_buffer: torch.Tensor,
++    topk_tokens: int,
++    candidate_blocks: torch.Tensor | None,
++    candidate_write: bool,
++) -> None:
++    """Copy the first num_rows rows of the gathered block into the buffers."""
++    rows = gathered[:num_rows]
++    token_end = token_start + num_rows
++    topk_indices_buffer[token_start:token_end, :topk_tokens].copy_(
++        rows[:, :topk_tokens]
++    )
++    if candidate_blocks is not None and candidate_write:
++        candidate_blocks[token_start:token_end].copy_(rows[:, topk_tokens:])
++
++
++def _dsv41_prefill_chunk_tp_split(
++    chunk,
++    q_quant: torch.Tensor,
++    q_scale: torch.Tensor | None,
++    weights: torch.Tensor,
++    k_quant: torch.Tensor,
++    k_scale: torch.Tensor,
++    topk_indices_buffer: torch.Tensor,
++    topk_tokens: int,
++    candidate_blocks: torch.Tensor | None,
++    candidate_block_size: int,
++    candidate_write: bool,
++    use_fp4_cache: bool,
++    world: int,
++    rank: int | None = None,
++    all_gather_fn=None,
++) -> None:
++    """Split-row replacement for one prefill chunk of the indexer loop.
++
++    rank / all_gather_fn default to the TP group; the test passes its own.
++    """
++    if rank is None:
++        rank = get_tp_group().rank_in_group
++    if all_gather_fn is None:
++        all_gather_fn = get_tp_group().all_gather
++    num_rows = chunk.token_end - chunk.token_start
++    lo, hi, per = _dsv41_tp_split_bounds(num_rows, world, rank)
++    rows = slice(chunk.token_start + lo, chunk.token_start + hi)
++    local = _dsv41_prefill_rows_local(
++        q_quant[rows],
++        q_scale[rows] if q_scale is not None else None,
++        k_quant,
++        k_scale,
++        weights[rows],
++        chunk.cu_seqlen_ks[lo:hi],
++        chunk.cu_seqlen_ke[lo:hi],
++        topk_tokens,
++        per,
++        candidate_blocks[rows] if candidate_blocks is not None else None,
++        candidate_block_size,
++        candidate_write,
++        use_fp4_cache,
++    )
++    # [world * per, W] in rank order (GroupCoordinator.all_gather, dim 0).
++    gathered = all_gather_fn(local, 0)
++    assert gathered.shape[0] == world * per, (gathered.shape, world, per)
++    _dsv41_scatter_gathered(
++        gathered,
++        num_rows,
++        chunk.token_start,
++        topk_indices_buffer,
++        topk_tokens,
++        candidate_blocks,
++        candidate_write,
++    )
++
++
+ @triton.jit
+ def _fused_indexer_q_rope_quant_kernel(
+     positions,
+@@ -491,6 +752,30 @@
+                 chunk.token_start : chunk.token_end, :topk_tokens
+             ]
+ 
++            # Tech2Wild 2026-09-14: DSV41_INDEXER_TP_SPLIT (default off -> world 1).
++            tp_split_world = _dsv41_tp_split_world(
++                chunk.token_end - chunk.token_start, dcp_world_size, use_pcp
++            )
++            if tp_split_world > 1 and chunk.local_total_seq_lens > 0:
++                _dsv41_prefill_chunk_tp_split(
++                    chunk,
++                    q_quant,
++                    q_scale,
++                    weights,
++                    k_quant,
++                    k_scale,
++                    topk_indices_buffer,
++                    topk_tokens,
++                    candidate_blocks,
++                    candidate_block_size,
++                    candidate_write,
++                    use_fp4_cache,
++                    tp_split_world,
++                )
++                # The split requires dcp_world_size == 1, where
++                # _merge_dcp_topk_global is a no-op.
++                continue
++
+             if chunk.local_total_seq_lens == 0:
+                 logits = q_slice.new_empty((q_slice.shape[0], 0), dtype=torch.float32)
+                 topk_indices.fill_(-1)
+@@ -865,6 +1150,8 @@
+                 "Sparse Attention Indexer CUDA op requires DeepGEMM support in "
+                 "the current vLLM environment."
+             )
++        # Tech2Wild 2026-09-14: runs once per process, on every TP rank.
++        _dsv41_check_tp_split_env_consistent()
+ 
+     @property
+     def cp_kv_cache_interleave_size(self) -> int:

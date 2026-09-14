@@ -1,0 +1,41 @@
+--- a/vllm/models/deepseek_v4/nvidia/ops/o_proj.py
++++ b/vllm/models/deepseek_v4/nvidia/ops/o_proj.py
+@@ -26,6 +26,17 @@
+     return einsum_recipe, tma_aligned_scales
+ 
+ 
++def woa_grouped_forward(groups: nn.ModuleList, x_tgd: torch.Tensor) -> torch.Tensor:
++    """Per-group native MXFP8 wo_a (SM12x, DSV41_WOA_B12X): [T, G, K] -> [T, G, R].
++
++    ``x_tgd`` is the [T, G, K] transpose view of fused_inv_rope's contiguous
++    [G, T, K] buffer, so each ``x_tgd[:, g]`` is a contiguous [T, K] slice. Each
++    group module quantizes its input to MXFP8 and runs one GEMM; static shapes,
++    no host syncs.
++    """
++    return torch.stack([grp(x_tgd[:, g]) for g, grp in enumerate(groups)], dim=1)
++
++
+ def deep_gemm_fp8_o_proj(
+     o: torch.Tensor,
+     positions: torch.Tensor,
+@@ -46,7 +57,10 @@
+     Shared by the FlashMLA and FlashInfer CUDA backends. The attention
+     layer selects the recipe at initialization.
+     """
+-    use_fp8 = wo_a.weight.dtype == torch.float8_e4m3fn
++    # Tech2Wild/Kai 2026-09-14: SM12x native MXFP8 wo_a (DSV41_WOA_B12X, installed
++    # post-load by deepseek_v4_1/woa_sm12x.py). Takes the BF16 rotated input.
++    woa_groups = getattr(wo_a, "dsv41_woa_groups", None)
++    use_fp8 = woa_groups is None and wo_a.weight.dtype == torch.float8_e4m3fn
+     o_proj_input, o_scale = fused_inv_rope_fp8_quant(
+         o,
+         positions,
+@@ -59,6 +73,8 @@
+         tma_aligned_scales=tma_aligned_scales,
+         quantize=use_fp8,
+     )
++    if woa_groups is not None:
++        return wo_b(woa_grouped_forward(woa_groups, o_proj_input).flatten(1))
+     z = torch.empty(
+         (o.shape[0], n_groups, o_lora_rank),
+         device=o.device,
