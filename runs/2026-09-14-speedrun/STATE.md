@@ -233,6 +233,12 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - **Harness deployed on Reddie:** `/root/sr_boot.sh <go> <label>` and `/root/sr_screen.sh <label>`. Local copies are in `tools/`.
 - **Mac:** keep-awake requested (session_idle).
 
+## FINALIZER PROGRESS
+- 09:55:08 queue.stop set; 09:55:56 b1-ctx1m finished and the dynamic queue exited (b1-noexpseg and b1-shexp not run).
+- 09:56:08 final labels b1-best + b1-idxsplit; 09:56:10 `exl3tp4b-ablit-best-go.sh` written (IMAGE exl3b-roce, PATCH sr2roce, 128 threads, RoCE env, TP split) and `restore_exl3tp4b_ablit_best.sh` started.
+- **10:05:00 SERVING final-best** through `restore_exl3tp4b_ablit_best.sh` (the documented restore path works). Postcheck: count correct at 97.0 / 109.4 tok/s, code 79.3 / 88.3 tok/s (non-streaming), tool call `get_weather` OK, vision "Red" OK. Boot log: TP split on, Engram FAST on, RoCE all-reduce live, KV 3,615,772 tokens (12.05x at 300K).
+- Running: `sr_final.sh final-best` (~25 min), then the 131K needle and liveness. Then fill the README final numbers; 11:00 issue/PR pass.
+
 ## UNATTENDED FINALIZER (armed 08:30, `/root/sr_finalize.sh`, status `finalize.status`, log `finalize.log`)
 - At 09:55 UTC it sets `queue.stop`, waits for the running label, then builds the final go script from **`/var/tmp/boot-results/speedrun/final-labels.txt`** (now: `b1-best`; add winning `b1-*` labels on new lines, b1-best first; several labels are merged by `sr_combo.sh`).
 - It saves that as `asusi:~/exl3tp4b-ablit-best-go.sh` (old copy kept as `.bak-HHMM`) and boots it with `/root/restore_exl3tp4b_ablit_best.sh`, which also tests the documented restore path. If that boot fails it restores b1-best; if that fails too, the pre-speed-run config.
