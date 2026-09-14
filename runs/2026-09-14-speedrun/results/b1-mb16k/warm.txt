@@ -1,0 +1,17 @@
+[b1-mb16k-warm] warmup
+  C1 coding        agg   87.54 tok/s  per-stream 92.78  ttft 0.139s
+  C1 json          agg   65.35 tok/s  per-stream 71.3  ttft 0.17s
+  C1 narrative     agg   31.75 tok/s  per-stream 32.77  ttft 0.183s
+  C1 prose         agg   38.78 tok/s  per-stream 40.72  ttft 0.18s
+  C1 math          agg   71.91 tok/s  per-stream 78.16  ttft 0.213s
+  C1 reasoning     agg   67.49 tok/s  per-stream 72.49  ttft 0.217s
+  C1 summary       agg   32.04 tok/s  per-stream 35.91  ttft 0.387s
+  C1 format        agg   73.07 tok/s  per-stream 86.03  ttft 0.227s
+  C1 ceiling_count agg   95.04 tok/s  per-stream 101.28  ttft 0.164s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/b1-mb16k/warm/bench-b1-mb16k-warm.json'
