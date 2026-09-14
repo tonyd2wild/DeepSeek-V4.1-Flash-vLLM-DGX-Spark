@@ -1,0 +1,201 @@
+--- a/sglang/srt/layers/engram.py
++++ b/sglang/srt/layers/engram.py
+@@ -666,6 +666,174 @@
+             logger.info(msg)
+ 
+ 
++# ---------------------------------------------------------------------------
++# Tech2Wild 2026-09-14 (MIT): disk-backed Engram rows for DGX Spark (GB10).
++# Ported from our vLLM patches (tonyd2wild/DeepSeek-V4.1-Flash-vLLM-DGX-Spark): Kai's DiskEngramTable
++# (2026-09-10) and the speed-run fast staging (2026-09-14: numpy memmap gather split over a thread pool,
++# raw fp8 rows and e8m0 scales dequantized on the GPU). On GB10 the GPU and the host share one 121.7 GiB
++# pool, so neither layout above (device rows or a host table) leaves room for the ~47 GiB per-rank Engram
++# shard next to the weights. With SGLANG_DSV41_ENGRAM_DISK=1 a rank keeps read-only memmaps of the
++# checkpoint's Engram tensors and gathers only the rows a step needs; the page cache holds the hot rows.
++# SGLANG_DSV41_ENGRAM_DIR may point at a node-local sparse copy of the Engram shards (engram-local.json
++# names the row range per layer that exists there); rows outside that range come from the model directory.
++# The lookup runs as a graph break (eager_on_graph), so the decode CUDA graph backend must be "breakable".
++# ---------------------------------------------------------------------------
++_DSV41_ENGRAM_DISK = os.environ.get("SGLANG_DSV41_ENGRAM_DISK", "0") == "1"
++_DSK_THREADS = int(os.environ.get("SGLANG_DSV41_ENGRAM_DISK_THREADS", "128"))
++_DSK_POOL = None
++_DSK_LOOKUP = None
++
++
++def _dsk_pool():
++    global _DSK_POOL
++    if _DSK_POOL is None:
++        import concurrent.futures
++
++        _DSK_POOL = concurrent.futures.ThreadPoolExecutor(
++            max_workers=_DSK_THREADS, thread_name_prefix="engram-disk"
++        )
++    return _DSK_POOL
++
++
++def _dsk_memmaps(model_dir: str, layer_id: int):
++    """Read-only memmaps over one Engram layer's full embed.weight [N, dim] and
++    embed.scale [N, dim // 32] tensors (uint8) in the safetensors shards."""
++    import json
++    import struct
++
++    with open(os.path.join(model_dir, "model.safetensors.index.json")) as f:
++        weight_map = json.load(f)["weight_map"]
++    maps = []
++    for suffix in ("weight", "scale"):
++        name = f"layers.{layer_id}.engram.embed.{suffix}"
++        path = os.path.join(model_dir, weight_map[name])
++        with open(path, "rb") as f:
++            n = struct.unpack("<Q", f.read(8))[0]
++            meta = json.loads(f.read(n))[name]
++        off = 8 + n + meta["data_offsets"][0]
++        mm = np.memmap(path, dtype=np.uint8, mode="r", offset=off, shape=tuple(meta["shape"]))
++        try:
++            mm._mmap.madvise(mmap.MADV_RANDOM)
++        except Exception:  # noqa: BLE001
++            pass
++        maps.append(mm)
++    return maps[0], maps[1]
++
++
++def _dsk_take(mm, idx, out, futs: list) -> None:
++    """out[i] = mm[idx[i]]; large gathers are split over the pool so cold rows
++    fault in parallel (numpy's take loop releases the GIL)."""
++    n = idx.shape[0]
++    step = min(1024, max(16, -(-n // _DSK_THREADS)))
++    if n <= step:
++        np.take(mm, idx, axis=0, out=out)
++        return
++    pool = _dsk_pool()
++    for lo in range(0, n, step):
++        hi = min(lo + step, n)
++        futs.append(pool.submit(np.take, mm, idx[lo:hi], 0, out[lo:hi]))
++
++
++class _DiskEngramRows:
++    """This rank's Engram rows [row_start, row_start + rows), read on demand."""
++
++    def __init__(self, layer_id, row_start, rows, dim, model_dir=None, local_dir=None):
++        import json
++
++        self.layer_id = layer_id
++        self.row_start = row_start
++        self.rows = rows
++        self.dim = dim
++        self.sb = dim // FP8_BLOCK_SIZE
++        if model_dir is None:
++            model_dir = get_model().model_path
++        if local_dir is None:
++            local_dir = os.environ.get("SGLANG_DSV41_ENGRAM_DIR", "") or model_dir
++        lo, hi = 0, None
++        info = os.path.join(local_dir, "engram-local.json")
++        if local_dir != model_dir and os.path.exists(info):
++            with open(info) as f:
++                lo, hi = json.load(f)["layers"][str(layer_id)]
++        self.w, self.s = _dsk_memmaps(local_dir, layer_id)
++        n = self.w.shape[0]
++        assert self.w.shape[1] == dim and tuple(self.s.shape) == (n, self.sb), (self.w.shape, self.s.shape)
++        self.lo, self.hi = lo, (n if hi is None else hi)
++        a, b = row_start, row_start + rows
++        self.fallback = None
++        if rows and not (self.lo <= a and b <= self.hi):
++            self.fallback = _dsk_memmaps(model_dir, layer_id)
++        missing = (max(0, min(self.lo, b) - a) + max(0, b - max(self.hi, a))) if rows else 0
++        self._w_buf = self._s_buf = None
++        logging.getLogger(__name__).info(
++            "Engram DISK layer %d: rows [%d, %d) from %s (rows [%d, %d) there); %d rows from %s",
++            layer_id, a, b, local_dir, self.lo, self.hi, missing,
++            model_dir if self.fallback is not None else "-",
++        )
++
++    def _buffers(self, u: int):
++        if self._w_buf is None or self._w_buf.shape[0] < u:
++            cap = max(u, 4096)
++            pin = torch.cuda.is_available()
++            self._w_buf = torch.empty((cap, self.dim), dtype=torch.uint8, pin_memory=pin)
++            self._s_buf = torch.empty((cap, self.sb), dtype=torch.uint8, pin_memory=pin)
++        return self._w_buf[:u], self._s_buf[:u]
++
++    def gather(self, u):
++        """uint8 rows [U, dim] and scales [U, sb] (pinned host) for global row ids u (int64 numpy)."""
++        w_t, s_t = self._buffers(u.shape[0])
++        w_np, s_np = w_t.numpy(), s_t.numpy()
++        futs: list = []
++        parts = []
++        if self.fallback is None:
++            _dsk_take(self.w, u, w_np, futs)
++            _dsk_take(self.s, u, s_np, futs)
++        else:
++            here = (u >= self.lo) & (u < self.hi)
++            for mask, (wm, sm) in ((here, (self.w, self.s)), (~here, self.fallback)):
++                pos = np.nonzero(mask)[0]
++                if pos.size == 0:
++                    continue
++                tw = np.empty((pos.size, self.dim), np.uint8)
++                ts = np.empty((pos.size, self.sb), np.uint8)
++                _dsk_take(wm, u[pos], tw, futs)
++                _dsk_take(sm, u[pos], ts, futs)
++                parts.append((pos, tw, ts))
++        for fut in futs:
++            fut.result()
++        for pos, tw, ts in parts:
++            w_np[pos] = tw
++            s_np[pos] = ts
++        return w_t, s_t
++
++
++def _disk_owned_rows_impl(disk, indices: torch.Tensor) -> torch.Tensor:
++    """Same result as the device-sharded path: this rank's rows dequantized to bf16,
++    zero for rows another rank owns (the caller's all-reduce sums the ranks)."""
++    flat = indices.reshape(-1).to(torch.int64)
++    owned = (flat >= disk.row_start) & (flat < disk.row_start + disk.rows)
++    safe = torch.where(owned, flat, torch.full_like(flat, disk.row_start))
++    uniq, inverse = torch.unique(safe, return_inverse=True)
++    w_t, s_t = disk.gather(uniq.cpu().numpy())
++    dev = indices.device
++    w = w_t.to(dev, non_blocking=True).view(torch.float8_e4m3fn)
++    s = s_t.to(dev, non_blocking=True).view(torch.float8_e8m0fnu)
++    rows = w.float().unflatten(-1, (-1, FP8_BLOCK_SIZE))
++    vals = (rows * s.float().unsqueeze(-1)).flatten(-2).to(torch.bfloat16)
++    out = vals.index_select(0, inverse).masked_fill(~owned.unsqueeze(-1), 0)
++    return out.view(*indices.shape, disk.dim)
++
++
++def _disk_lookup(disk, indices: torch.Tensor) -> torch.Tensor:
++    global _DSK_LOOKUP
++    if _DSK_LOOKUP is None:
++        from sglang.srt.model_executor.runner_backend_utils.breakable_cuda_graph.breakable_cuda_graph import (
++            eager_on_graph,
++        )
++
++        _DSK_LOOKUP = eager_on_graph(True)(_disk_owned_rows_impl)
++    return _DSK_LOOKUP(disk, indices)
++
++
+ class EngramEmbedding(nn.Module):
+     """One layer's fp8 hash table with e8m0 block scales, dequantized on lookup.
+ 
+@@ -686,6 +854,14 @@
+         row_end = num_embeddings * (tp_rank + 1) // self.tp_size
+         self.rows = row_end - self.row_start
+         self.host_table: Optional[_HostTable] = None
++        self.disk: Optional[_DiskEngramRows] = None
++        if _DSV41_ENGRAM_DISK:
++            # Tech2Wild 2026-09-14: rows stay on disk. No weight/scale parameters, and the
++            # patched weight iterator skips these tensors, so nothing is loaded for them.
++            self.disk = _DiskEngramRows(layer_id, self.row_start, self.rows, dim)
++            self.weight = None
++            self.scale = None
++            return
+         if envs.SGLANG_ENABLE_DSV41_ENGRAM_HOST_TABLE.get():
+             self._init_host_table(num_embeddings, dim, layer_id)
+         else:
+@@ -793,6 +969,8 @@
+ 
+     def _owned_rows(self, indices: torch.Tensor) -> torch.Tensor:
+         """Rows of `indices` this rank's shard holds, zero for the rest."""
++        if self.disk is not None:
++            return _disk_lookup(self.disk, indices)
+         if self.rows == 0:
+             return self._empty(indices).zero_()
+         if self.host_table is None and (

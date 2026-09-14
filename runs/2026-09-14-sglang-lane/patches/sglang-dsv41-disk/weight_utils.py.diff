@@ -1,0 +1,63 @@
+--- a/sglang/srt/model_loader/weight_utils.py
++++ b/sglang/srt/model_loader/weight_utils.py
+@@ -1079,6 +1079,33 @@
+             os.close(fd)
+ 
+ 
++# ---------------------------------------------------------------------------
++# Tech2Wild 2026-09-14 (MIT): yield a tensor only from the file model.safetensors.index.json maps it to,
++# so an overlay file that repoints some tensors (our uncensored wo_b layers 10-35) wins on every rank no
++# matter how SGLANG_SORT_WEIGHT_FILES orders or staggers the files. With SGLANG_DSV41_ENGRAM_DISK=1 the
++# Engram embed tables (read from disk at run time) are skipped before they are ever materialized.
++# ---------------------------------------------------------------------------
++_DSV41_INDEX_CACHE: dict = {}
++_DSV41_SKIP_ENGRAM = os.environ.get("SGLANG_DSV41_ENGRAM_DISK", "0") == "1"
++_DSV41_ENGRAM_RE = re.compile(r"\.engram\.embed\.(weight|scale)$")
++
++
++def _dsv41_keep(st_file: str, name: str) -> bool:
++    if _DSV41_SKIP_ENGRAM and _DSV41_ENGRAM_RE.search(name):
++        return False
++    folder = os.path.dirname(st_file)
++    weight_map = _DSV41_INDEX_CACHE.get(folder)
++    if weight_map is None:
++        weight_map = {}
++        index_path = os.path.join(folder, "model.safetensors.index.json")
++        if os.path.exists(index_path):
++            with open(index_path) as f:
++                weight_map = json.load(f).get("weight_map", {}) or {}
++        _DSV41_INDEX_CACHE[folder] = weight_map
++    owner = weight_map.get(name)
++    return owner is None or owner == os.path.basename(st_file)
++
++
+ def safetensors_weights_iterator(
+     hf_weights_files: List[str],
+     disable_mmap: bool = False,
+@@ -1107,11 +1134,13 @@
+             with open(st_file, "rb") as f:
+                 result = safetensors.torch.load(f.read())
+                 for name in sorted(result.keys()):
+-                    yield name, result[name]
++                    if _dsv41_keep(st_file, name):
++                        yield name, result[name]
+         else:
+             with safetensors.safe_open(st_file, framework="pt", device="cpu") as f:
+                 for name in f.keys():
+-                    yield name, f.get_tensor(name)
++                    if _dsv41_keep(st_file, name):
++                        yield name, f.get_tensor(name)
+         if drop_cache_after_load:
+             _drop_file_cache_after_load(st_file)
+ 
+@@ -1248,8 +1277,8 @@
+                 result = safetensors.torch.load(f.read())
+         else:
+             with safetensors.safe_open(st_file, framework="pt", device="cpu") as f:
+-                result = {k: f.get_tensor(k) for k in f.keys()}
+-        return result
++                result = {k: f.get_tensor(k) for k in f.keys() if _dsv41_keep(st_file, k)}
++        return {k: v for k, v in result.items() if _dsv41_keep(st_file, k)}
+ 
+     # Sliding window: max_workers loading + 1 prefetched.
+     buffer_size = max_workers + 1
