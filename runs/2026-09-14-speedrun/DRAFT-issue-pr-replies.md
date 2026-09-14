@@ -33,4 +33,6 @@ Update from a 2026-09-14 overnight run, plus thanks to @tmolteno and @im0xMagnus
 
 ## PR #7 (docs: Community ports line for im0xMagnus's 8x Spark TP8 port), new at 03:58Z
 - Two added lines in README under Sister repos, no code. Links a public repo that carries this recipe to eight ranks on dealignai's UNCENSORED-FP8.
-- **Plan:** merge (squash) with thanks. It credits a community port and matches our credit-everyone rule. Check the link resolves before merging.
+- **Plan:** merge (squash) with thanks. It credits a community port and matches our credit-everyone rule.
+- Link checked 08:29 UTC: `im0xMagnus/deepseek-v4.1-flash-uncensored-8x-dgx-spark` is public (created 2026-09-11, pushed 03:58Z) with LICENSE, README, bench, build, launch, results, tools.
+- Reply draft: "Thanks @im0xMagnus, merged. Glad the recipe carried to eight ranks. Tonight's speed run (runs/2026-09-14-speedrun) found a b12x RoCE all-reduce win on 4 nodes that may help TP8 too; details and credits are in that folder."

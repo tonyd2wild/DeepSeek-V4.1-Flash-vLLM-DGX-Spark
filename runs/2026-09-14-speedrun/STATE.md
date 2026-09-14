@@ -227,6 +227,13 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - **Harness deployed on Reddie:** `/root/sr_boot.sh <go> <label>` and `/root/sr_screen.sh <label>`. Local copies are in `tools/`.
 - **Mac:** keep-awake requested (session_idle).
 
+## UNATTENDED FINALIZER (armed 08:30, `/root/sr_finalize.sh`, status `finalize.status`, log `finalize.log`)
+- At 09:55 UTC it sets `queue.stop`, waits for the running label, then builds the final go script from **`/var/tmp/boot-results/speedrun/final-labels.txt`** (now: `b1-best`; add winning `b1-*` labels on new lines, b1-best first; several labels are merged by `sr_combo.sh`).
+- It saves that as `asusi:~/exl3tp4b-ablit-best-go.sh` (old copy kept as `.bak-HHMM`) and boots it with `/root/restore_exl3tp4b_ablit_best.sh`, which also tests the documented restore path. If that boot fails it restores b1-best; if that fails too, the pre-speed-run config.
+- Then `sr_final.sh final-best` (full C1-C6, prefill 2K-64K, vision/tools, quality), a 131K needle, and `liveness.sh` (log only).
+- To finalize early: `touch /var/tmp/boot-results/speedrun/finalize.now`. To cancel: kill the `^bash /root/sr_finalize.sh` process from a script file (pgrep gotcha).
+- `asusi:~/exl3tp4b-ablit-best-go.sh` = `sr-b1-best-go.sh` since 08:28 (md5 3c124022).
+
 ## 07:59 rebase: the b1 ladder (`/root/mk_b1.sh`)
 - **b1** = E02 (ch8 + Engram fast) + E09 (`ENGRAM_THREADS=128`) + E19 (RoCE, image `exl3b-roce`, patch set `dsv41-exl3-sr1roce`). Every `b1-*` label is b1 plus ONE change.
 - Go scripts on Asusi: `sr-b1-best`, `sr-b1-idxsplit` (patch set `dsv41-exl3-sr2roce` = sr1roce + split indexer, on all 4 nodes), `sr-b1-k4`, `sr-b1-mb16k`, `sr-b1-idxlogits`, `sr-b1-ctx1m`, `sr-b1-noexpseg`, `sr-b1-gmu85`, `sr-b1-shexp`.
