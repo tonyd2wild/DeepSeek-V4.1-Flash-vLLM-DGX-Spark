@@ -61,3 +61,11 @@ Goal (Tony, 13:10 UTC): stand up DeepSeek-V4.1-Flash UNCENSORED on SGLang across
 - **Two deaths: STOP and restore the last known-good config.** 14:07 `sg_down.sh`, then `restore_exl3tp4b_ablit_best.sh` (the vLLM speed-run final). Regroup before any further SGLang boot.
 - **13:55:19 boot `sg2`** (patch v2, `--ep-size 4`). 14:01:51 head: "Load weight end. elapsed=332.64 s ... avail mem=37.36 GB, mem usage=74.68 GB" (the EP fix works); "Engram DISK layer 1: rows [0, 96001542) from /engram"; KV dtype fp8_e4m3. Workers (14:02): Engram DISK rows exactly as planned; NFS fallback rows 1,344 / 1,325 (Spark4), 972 / 947 (Asusi), 0 (Bluey); 34-35 GiB free on each worker after weights.
 - **13:46 boot `sg1` started** (`/root/sg_up.sh sg1`, log `/var/tmp/boot-results/sglang/boot-sg1.log`): stops vLLM on all 4 nodes, then SGLang ranks 3, 2, 1, 0.
+
+## sg5 numbers (mem-fraction 0.82, ctx 500K), bench cut off by the 15:22 hang; measured under memory pressure
+- C1-C6 aggregate (mean of 8 categories): 23.38 / 42.97 / 55.15 / 75.01 / 82.89 / 82.75 tok/s (vLLM best run 2: 58.27 / 96.0 / 128.29 / 152.44 / 171.11 / 189.97).
+- C1 per-stream: code 34.71, JSON 27.06, math 34.01, prose 16.25, narrative 15.57 (vLLM: 85.2, 65.0, 87.9, 41.0, 36.3).
+- Cold prefill: 711 / 800 / 652 tok/s at 2,950 / 11,592 / 46,810 tokens (vLLM: 1,836 / 1,997 / 2,014). The 64K prefill and the 131K needle did not finish.
+- Idle test: count 45.8 tok/s, 127 ms per step (vLLM: 117.6, 49-50 ms).
+- KV pool 9,323,776 tokens at 500K context (vLLM 3,757,748 at 300K).
+- Verdict: on this configuration SGLang is 2-2.5x slower than the vLLM lane and exhausts node memory under the bench. Not a switch.
