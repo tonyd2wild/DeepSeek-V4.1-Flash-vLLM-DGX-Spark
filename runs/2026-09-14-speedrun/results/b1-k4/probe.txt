@@ -1,0 +1,11 @@
+prompt_tokens 39624 ttft_s 18.67 prefill_tok_s 2123
+--- reddie: top worker threads by mean CPU% during the probe (samples with >=3%)
+VLLM::Worker_TP    mean   88.6%  in 12 samples
+VLLM::Worker       mean   58.5%  in 16 samples
+  engram-disk threads total CPU (sum of means): 0% over 0 threads
+  GPU util/power/clock samples: n=85 util 44% power 34.6 W
+--- spark4: top worker threads by mean CPU% during the probe (samples with >=3%)
+VLLM::Worker_TP    mean   82.0%  in 10 samples
+VLLM::Worker       mean   54.4%  in 17 samples
+  engram-disk threads total CPU (sum of means): 0% over 0 threads
+  GPU util/power/clock samples: n=85 util 42% power 32.9 W
