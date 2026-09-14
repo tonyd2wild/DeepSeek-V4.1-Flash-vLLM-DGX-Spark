@@ -1,0 +1,17 @@
+[f-noexpseg-warm] warmup
+  C1 coding        agg   85.02 tok/s  per-stream 91.99  ttft 0.188s
+  C1 json          agg   70.60 tok/s  per-stream 77.87  ttft 0.171s
+  C1 narrative     agg   30.81 tok/s  per-stream 31.7  ttft 0.181s
+  C1 prose         agg   38.49 tok/s  per-stream 40.35  ttft 0.18s
+  C1 math          agg   73.22 tok/s  per-stream 80.16  ttft 0.221s
+  C1 reasoning     agg   50.17 tok/s  per-stream 52.84  ttft 0.22s
+  C1 summary       agg   31.69 tok/s  per-stream 35.65  ttft 0.384s
+  C1 format        agg   74.52 tok/s  per-stream 87.21  ttft 0.233s
+  C1 ceiling_count agg   93.45 tok/s  per-stream 99.39  ttft 0.162s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/f-noexpseg/warm/bench-f-noexpseg-warm.json'
