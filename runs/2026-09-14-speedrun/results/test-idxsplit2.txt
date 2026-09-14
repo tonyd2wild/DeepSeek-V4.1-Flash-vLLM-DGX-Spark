@@ -1,0 +1,175 @@
+=== idxsplit test on Bluey 07:28:09
+README.md
+sparse_attn_indexer.idxsplit.diff
+sparse_attn_indexer.py
+test_idxsplit.py
+MemAvailable 25G
+--- --mode sim 07:28:09
+[sim] 600 rows r1                      fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 600 rows r1                      fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 600 rows r1                      fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+[sim] 8190 rows r2                     fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 8190 rows r2                     fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 8190 rows r2                     fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 8190 rows r2                     fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+[sim] 512 rows at MIN r1               fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+RESULT: PASS
+rc=0
+--- --mode sim --ties 07:28:26
+[sim] 600 rows r1                      fp8 cand=none    tp=4: topk TIE-ONLY n=201 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=none    tp=3: topk TIE-ONLY n=219 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=none    tp=2: topk TIE-ONLY n=216 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=write   tp=4: topk TIE-ONLY n=243 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=write   tp=3: topk TIE-ONLY n=230 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=write   tp=2: topk TIE-ONLY n=246 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 600 rows r1                      fp8 cand=consume tp=4: topk TIE-ONLY n=190 rows: differing picks have equal logits (ref_det=False)
+[sim] 600 rows r1                      fp8 cand=consume tp=3: topk TIE-ONLY n=195 rows: differing picks have equal logits (ref_det=False)
+[sim] 600 rows r1                      fp8 cand=consume tp=2: topk TIE-ONLY n=178 rows: differing picks have equal logits (ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=4: topk TIE-ONLY n=200 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=3: topk TIE-ONLY n=200 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=2: topk TIE-ONLY n=178 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=4: topk TIE-ONLY n=212 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=3: topk TIE-ONLY n=221 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=2: topk TIE-ONLY n=224 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=4: topk TIE-ONLY n=206 rows: differing picks have equal logits (ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=3: topk TIE-ONLY n=211 rows: differing picks have equal logits (ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=2: topk TIE-ONLY n=190 rows: differing picks have equal logits (ref_det=False)
+[sim] 8190 rows r2                     fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 8190 rows r2                     fp8 cand=none    tp=4: topk TIE-ONLY n=2707 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=none    tp=3: topk TIE-ONLY n=2766 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=none    tp=2: topk TIE-ONLY n=2915 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=4: topk TIE-ONLY n=2806 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=3: topk TIE-ONLY n=2869 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=2: topk TIE-ONLY n=2841 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=consume tp=4: topk TIE-ONLY n=2707 rows: differing picks have equal logits (ref_det=False)
+[sim] 8190 rows r2                     fp8 cand=consume tp=3: topk TIE-ONLY n=2745 rows: differing picks have equal logits (ref_det=False)
+[sim] 8190 rows r2                     fp8 cand=consume tp=2: topk TIE-ONLY n=2799 rows: differing picks have equal logits (ref_det=False)
+[sim] 512 rows at MIN r1               fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=4: topk TIE-ONLY n=189 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=3: topk TIE-ONLY n=210 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=2: topk TIE-ONLY n=240 rows: differing picks have equal logits (ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=4: topk TIE-ONLY n=236 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=3: topk TIE-ONLY n=252 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=2: topk TIE-ONLY n=212 rows: differing picks have equal logits (ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=4: topk TIE-ONLY n=180 rows: differing picks have equal logits (ref_det=False)
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=3: topk TIE-ONLY n=171 rows: differing picks have equal logits (ref_det=False)
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=2: topk TIE-ONLY n=173 rows: differing picks have equal logits (ref_det=False)
+RESULT: PASS
+rc=0
+--- --mode spawn --tp 4 07:28:37
+INFO 09-14 07:28:46 [deep_gemm.py:191] deep_gemm not found in site-packages, trying vendored vllm.third_party.deep_gemm
+INFO 09-14 07:28:46 [deep_gemm.py:191] deep_gemm not found in site-packages, trying vendored vllm.third_party.deep_gemm
+INFO 09-14 07:28:46 [deep_gemm.py:191] deep_gemm not found in site-packages, trying vendored vllm.third_party.deep_gemm
+INFO 09-14 07:28:46 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+INFO 09-14 07:28:46 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+INFO 09-14 07:28:46 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+INFO 09-14 07:28:46 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+[spawn r0] first-chunk r1                   fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[spawn r0] first-chunk r1                   fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] first-chunk r1                   fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] first-chunk r1                   fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] late-chunk r2                    fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[spawn r0] late-chunk r2                    fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] late-chunk r2                    fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] late-chunk r2                    fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 3 reqs + 7 decode r1             fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows
+[spawn r0] 3 reqs + 7 decode r1             fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 3 reqs + 7 decode r1             fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] 3 reqs + 7 decode r1             fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 3 reqs + 5 decode r2             fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows
+[spawn r0] 3 reqs + 5 decode r2             fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 3 reqs + 5 decode r2             fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] 3 reqs + 5 decode r2             fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 600 rows r1                      fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[spawn r0] 600 rows r1                      fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 600 rows r1                      fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] 600 rows r1                      fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 520 rows (empty last rank) r2    fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[spawn r0] 520 rows (empty last rank) r2    fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 520 rows (empty last rank) r2    fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] 520 rows (empty last rank) r2    fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 8190 rows r2                     fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[spawn r0] 8190 rows r2                     fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 8190 rows r2                     fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] 8190 rows r2                     fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 512 rows at MIN r1               fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[spawn r0] 512 rows at MIN r1               fp8 ranks identical=True cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False)
+[spawn r0] 512 rows at MIN r1               fp8 ranks identical=True cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[spawn r0] 512 rows at MIN r1               fp8 ranks identical=True cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+RESULT: PASS
+rc=0
+--- --mode sim --long 07:28:53
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 520 rows (empty last rank) r2    fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+[sim] 8190 rows r2                     fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 8190 rows r2                     fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 8190 rows r2                     fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 8190 rows r2                     fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 8190 rows r2                     fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+[sim] 512 rows at MIN r1               fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] 512 rows at MIN r1               fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+[sim] long r1 (logits ~2.9 GB)         fp8 reference check: indices relative, ref == torch.topk on 24 sampled rows (all ks == 0, conventions coincide)
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=none    tp=4: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=none    tp=3: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=none    tp=2: topk SET-EQUAL (order only, ref_det=False) | slice logits BYTE-EQUAL
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=write   tp=4: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=write   tp=3: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=write   tp=2: topk SET-EQUAL (order only, ref_det=False) | candidates BYTE-EQUAL
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=consume tp=4: topk SET-EQUAL (order only, ref_det=False)
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=consume tp=3: topk SET-EQUAL (order only, ref_det=False)
+[sim] long r1 (logits ~2.9 GB)         fp8 cand=consume tp=2: topk SET-EQUAL (order only, ref_det=False)
+RESULT: PASS
+rc=0
+=== done 07:29:07
