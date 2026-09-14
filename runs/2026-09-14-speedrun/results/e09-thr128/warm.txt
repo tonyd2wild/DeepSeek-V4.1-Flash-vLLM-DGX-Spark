@@ -1,0 +1,17 @@
+[e09-thr128-warm] warmup
+  C1 coding        agg   79.34 tok/s  per-stream 86.21  ttft 0.212s
+  C1 json          agg   65.33 tok/s  per-stream 71.25  ttft 0.17s
+  C1 narrative     agg   28.38 tok/s  per-stream 29.37  ttft 0.207s
+  C1 prose         agg   37.97 tok/s  per-stream 40.18  ttft 0.204s
+  C1 math          agg   67.76 tok/s  per-stream 73.34  ttft 0.216s
+  C1 reasoning     agg   60.56 tok/s  per-stream 64.41  ttft 0.212s
+  C1 summary       agg   28.26 tok/s  per-stream 31.28  ttft 0.382s
+  C1 format        agg   71.75 tok/s  per-stream 84.52  ttft 0.232s
+  C1 ceiling_count agg   88.70 tok/s  per-stream 95.12  ttft 0.192s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/e09-thr128/warm/bench-e09-thr128-warm.json'

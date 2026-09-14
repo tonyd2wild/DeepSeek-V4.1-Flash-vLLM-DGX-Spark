@@ -1,0 +1,139 @@
+=== idxsplit test on Bluey 07:13:31
+README.md
+sparse_attn_indexer.idxsplit.diff
+sparse_attn_indexer.py
+test_idxsplit.py
+MemAvailable 26G
+--- --mode sim --quant both 07:13:32
+INFO 09-14 07:13:41 [deep_gemm.py:191] deep_gemm not found in site-packages, trying vendored vllm.third_party.deep_gemm
+INFO 09-14 07:13:41 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+[sim] first-chunk r1                   fp8 cand=none    tp=4: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=none    tp=3: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=none    tp=2: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=write   tp=4: topk SET-EQUAL (ref nondet) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=write   tp=3: topk SET-EQUAL (ref nondet) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=write   tp=2: topk SET-EQUAL (ref nondet) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=consume tp=4: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=consume tp=3: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=consume tp=2: topk SET-EQUAL (ref nondet)
+Traceback (most recent call last):
+  File "/t.py", line 404, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/t.py", line 400, in main
+    return {"sim": run_sim, "spawn": run_spawn, "cpu-logic": run_cpu_logic}[args.mode](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 230, in run_sim
+    ref, ref_cand = unsplit_reference(sai, c, cand_in, mode, args.cand_block)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 138, in unsplit_reference
+    logits = sai.fp8_fp4_mqa_logits(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/utils/deep_gemm.py", line 550, in fp8_fp4_mqa_logits
+    return _fp8_fp4_mqa_logits_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Assertion error (/workspace/.deps/deepgemm-src/csrc/apis/../jit_kernels/impls/../heuristics/../../utils/layout.hpp:40): t.dim() == N
+rc=1
+--- --mode sim --ties 07:13:46
+INFO 09-14 07:13:53 [deep_gemm.py:191] deep_gemm not found in site-packages, trying vendored vllm.third_party.deep_gemm
+INFO 09-14 07:13:53 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+[sim] first-chunk r1                   fp8 cand=none    tp=4: topk MISMATCH rows=[540, 554, 562, 581, 595, 605, 615, 621] (n=3016, ref_det=False)
+[sim] first-chunk r1                   fp8 cand=none    tp=3: topk MISMATCH rows=[562, 566, 581, 595, 604, 605, 615, 642] (n=3075, ref_det=False)
+[sim] first-chunk r1                   fp8 cand=none    tp=2: topk MISMATCH rows=[566, 595, 605, 612, 621, 633, 642, 644] (n=3032, ref_det=False)
+[sim] first-chunk r1                   fp8 cand=write   tp=4: topk MISMATCH rows=[581, 595, 603, 621, 639, 644, 652, 657] (n=3134, ref_det=False) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=write   tp=3: topk MISMATCH rows=[581, 595, 603, 604, 615, 644, 652, 657] (n=3150, ref_det=False) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=write   tp=2: topk MISMATCH rows=[562, 581, 595, 603, 604, 639, 652, 654] (n=3102, ref_det=False) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=consume tp=4: topk MISMATCH rows=[540, 554, 595, 612, 615, 632, 644, 652] (n=3027, ref_det=False)
+[sim] first-chunk r1                   fp8 cand=consume tp=3: topk MISMATCH rows=[540, 554, 615, 644, 652, 654, 657, 671] (n=3045, ref_det=False)
+[sim] first-chunk r1                   fp8 cand=consume tp=2: topk MISMATCH rows=[540, 554, 562, 566, 581, 644, 654, 657] (n=3026, ref_det=False)
+Traceback (most recent call last):
+  File "/t.py", line 404, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/t.py", line 400, in main
+    return {"sim": run_sim, "spawn": run_spawn, "cpu-logic": run_cpu_logic}[args.mode](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 230, in run_sim
+    ref, ref_cand = unsplit_reference(sai, c, cand_in, mode, args.cand_block)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 138, in unsplit_reference
+    logits = sai.fp8_fp4_mqa_logits(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/utils/deep_gemm.py", line 550, in fp8_fp4_mqa_logits
+    return _fp8_fp4_mqa_logits_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Assertion error (/workspace/.deps/deepgemm-src/csrc/apis/../jit_kernels/impls/../heuristics/../../utils/layout.hpp:40): t.dim() == N
+rc=1
+--- --mode spawn --tp 4 07:13:56
+[spawn r0] first-chunk r1                   fp8 cand=none    tp=4: SET-EQUAL (ref nondet) | ranks identical=True
+[spawn r0] first-chunk r1                   fp8 cand=write   tp=4: SET-EQUAL (ref nondet) | candidates BYTE-EQUAL | ranks identical=True
+[spawn r0] first-chunk r1                   fp8 cand=consume tp=4: SET-EQUAL (ref nondet) | ranks identical=True
+W0914 07:14:08.484000 1 usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py:165] Terminating process 29 via signal SIGTERM
+W0914 07:14:08.484000 1 usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py:165] Terminating process 30 via signal SIGTERM
+W0914 07:14:08.484000 1 usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py:165] Terminating process 31 via signal SIGTERM
+Traceback (most recent call last):
+  File "/t.py", line 404, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/t.py", line 400, in main
+    return {"sim": run_sim, "spawn": run_spawn, "cpu-logic": run_cpu_logic}[args.mode](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 312, in run_spawn
+    mp.spawn(_spawn_worker, args=(world, args, args.port), nprocs=world, join=True)
+  File "/usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py", line 340, in spawn
+    return start_processes(fn, args, nprocs, join, daemon, start_method="spawn")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py", line 296, in start_processes
+    while not context.join():
+              ^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py", line 211, in join
+    raise ProcessRaisedException(msg, error_index, failed_process.pid)
+torch.multiprocessing.spawn.ProcessRaisedException: 
+
+-- Process 0 terminated with the following error:
+Traceback (most recent call last):
+  File "/usr/local/lib/python3.12/dist-packages/torch/multiprocessing/spawn.py", line 87, in _wrap
+    fn(i, *args)
+  File "/t.py", line 278, in _spawn_worker
+    ref, ref_cand = unsplit_reference(sai, c, cand_in, mode, args.cand_block)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 138, in unsplit_reference
+    logits = sai.fp8_fp4_mqa_logits(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/utils/deep_gemm.py", line 550, in fp8_fp4_mqa_logits
+    return _fp8_fp4_mqa_logits_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Assertion error (/workspace/.deps/deepgemm-src/csrc/apis/../jit_kernels/impls/../heuristics/../../utils/layout.hpp:40): t.dim() == N
+
+rc=1
+--- --mode sim --long 07:14:09
+INFO 09-14 07:14:16 [deep_gemm.py:191] deep_gemm not found in site-packages, trying vendored vllm.third_party.deep_gemm
+INFO 09-14 07:14:16 [deep_gemm.py:218] DeepGEMM PDL enabled on vllm.third_party.deep_gemm.
+[sim] first-chunk r1                   fp8 cand=none    tp=4: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=none    tp=3: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=none    tp=2: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=write   tp=4: topk SET-EQUAL (ref nondet) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=write   tp=3: topk SET-EQUAL (ref nondet) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=write   tp=2: topk SET-EQUAL (ref nondet) | candidates BYTE-EQUAL
+[sim] first-chunk r1                   fp8 cand=consume tp=4: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=consume tp=3: topk SET-EQUAL (ref nondet)
+[sim] first-chunk r1                   fp8 cand=consume tp=2: topk SET-EQUAL (ref nondet)
+Traceback (most recent call last):
+  File "/t.py", line 404, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/t.py", line 400, in main
+    return {"sim": run_sim, "spawn": run_spawn, "cpu-logic": run_cpu_logic}[args.mode](args)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 230, in run_sim
+    ref, ref_cand = unsplit_reference(sai, c, cand_in, mode, args.cand_block)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/t.py", line 138, in unsplit_reference
+    logits = sai.fp8_fp4_mqa_logits(
+             ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/usr/local/lib/python3.12/dist-packages/vllm/utils/deep_gemm.py", line 550, in fp8_fp4_mqa_logits
+    return _fp8_fp4_mqa_logits_impl(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+RuntimeError: Assertion error (/workspace/.deps/deepgemm-src/csrc/apis/../jit_kernels/impls/../heuristics/../../utils/layout.hpp:40): t.dim() == N
+rc=1
+=== done 07:14:19

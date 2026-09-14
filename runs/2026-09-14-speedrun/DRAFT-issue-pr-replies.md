@@ -30,3 +30,7 @@ Update from a 2026-09-14 overnight run, plus thanks to @tmolteno and @im0xMagnus
 - The logic is good and matches what hyudryu saw (MISS on a built module).
 - It adds `build/__pycache__/verify5.cpython-314.pyc`. Ask to drop it, or merge and remove it in a follow-up commit plus a `.gitignore` for `__pycache__`.
 - Merge if the pyc is gone. Otherwise merge with a follow-up commit removing it (credit im0xMagnus).
+
+## PR #7 (docs: Community ports line for im0xMagnus's 8x Spark TP8 port), new at 03:58Z
+- Two added lines in README under Sister repos, no code. Links a public repo that carries this recipe to eight ranks on dealignai's UNCENSORED-FP8.
+- **Plan:** merge (squash) with thanks. It credits a community port and matches our credit-everyone rule. Check the link resolves before merging.
