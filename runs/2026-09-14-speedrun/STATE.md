@@ -240,6 +240,12 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - **10:12:43 FINALIZE DONE.** `sr_final` 10:05-10:11: vision/tools 7/7, quality PASS, idle test 117-118 tok/s counting (49-50 ms/step), full C1-C6 aggregate 60.75 / 99.32 / 125.17 / 153.45 / 180.14 / 192.02 (+8.0 / +14.3 / +9.1 / +12.6 / +15.0 / +14.5% vs baseline), TTFT C1 0.208 s, cold prefill 1,844 / 1,991 / 2,009 / 2,021 (+35-38%), KV 3,615,772 (+10.4%). Needle 130,258 tokens PASS at 2,053 tok/s. Liveness probe running (`liveness.log`, first check ok 0.26 s).
 - Remaining: 11:00 UTC issue/PR pass (drafts ready, heads recorded), final commit and push, memory update, summary for Tony.
 
+## EXTRA ROUND 10:15-10:48 UTC (`tools/extra_round.sh`)
+- There were 45 min of experiment time left before 11:00, so two more KV levers run on top of the verified final: `f-gmu82` (GMU 0.82: between the 0.80 we serve and 0.85, which left ~6 GB on two ranks) and `f-noexpseg` (`expandable_segments:False`, ecohash's finding).
+- Fresh dynamic queue (`dq2.log`, fallback `final-best`); liveness paused; `final-best-run1/` keeps the verified final results.
+- **`sr_finalize.sh` re-armed with STOP_AT=1048**: it restores the labels in `final-labels.txt` (still b1-best + b1-idxsplit; append `f-gmu82` or `f-noexpseg` only if it wins, with at least ~12 GB available on every rank), re-runs `sr_final`, the needle and liveness. The best config is back and verified by about 11:00 either way.
+- Compare the f-* screens with `b1-idxsplit` (the same config under SCREEN).
+
 ## UNATTENDED FINALIZER (armed 08:30, `/root/sr_finalize.sh`, status `finalize.status`, log `finalize.log`)
 - At 09:55 UTC it sets `queue.stop`, waits for the running label, then builds the final go script from **`/var/tmp/boot-results/speedrun/final-labels.txt`** (now: `b1-best`; add winning `b1-*` labels on new lines, b1-best first; several labels are merged by `sr_combo.sh`).
 - It saves that as `asusi:~/exl3tp4b-ablit-best-go.sh` (old copy kept as `.bak-HHMM`) and boots it with `/root/restore_exl3tp4b_ablit_best.sh`, which also tests the documented restore path. If that boot fails it restores b1-best; if that fails too, the pre-speed-run config.
