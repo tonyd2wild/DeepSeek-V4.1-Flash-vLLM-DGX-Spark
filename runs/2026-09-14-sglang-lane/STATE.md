@@ -75,3 +75,8 @@ Goal (Tony, 13:10 UTC): stand up DeepSeek-V4.1-Flash UNCENSORED on SGLang across
 - Idle test: count 45.8 tok/s, 127 ms per step (vLLM: 117.6, 49-50 ms).
 - KV pool 9,323,776 tokens at 500K context (vLLM 3,757,748 at 300K).
 - Verdict: on this configuration SGLang is 2-2.5x slower than the vLLM lane and exhausts node memory under the bench. Not a switch.
+
+## 15:55 vLLM back, serving at 500K
+- Reddie unplugged by Tony/Kai ~15:40; the watcher saw the reboot and started the 500K restore at 15:41:54 (burn passed, Reddie 83.1 TFLOPS). A second "go now" restore at 15:46 killed that boot's restore script and stopped the containers (my mistake, ~5 min lost); one clean restore started 15:47:35.
+- **SERVING 15:55:43**: burn Reddie 91.1, Asusi 90.3, Bluey 88.5, Spark4 89.4 TFLOPS; `GPU KV cache size: 4,205,850 tokens, Maximum concurrency for 500,000 tokens per request: 8.41x`; postcheck count correct at 96.1 / 110.0 tok/s, code 78.1 / 85.8 tok/s, tool call get_weather OK, vision "Red" OK; liveness started (first check ok 0.25 s).
+- Live config: `asusi:~/exl3tp4b-ablit-best500k-go.sh` (the speed-run best plus MAXLEN=500000). Restore it with `GO=exl3tp4b-ablit-best500k-go.sh bash /root/restore_exl3tp4b_ablit_best.sh`; the 300K best is `bash /root/restore_exl3tp4b_ablit_best.sh`.

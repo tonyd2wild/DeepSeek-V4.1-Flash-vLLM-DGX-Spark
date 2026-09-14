@@ -111,7 +111,8 @@ The baseline lane `exl3tp4b-ablit`, plus:
 
 Everything else is unchanged: TP4, DSpark k=5, CUDA graphs FULL_AND_PIECEWISE, 300K context, gmu 0.80, vision (4 images) and tools on, thinking off.
 
-- **Restore:** `bash /root/restore_exl3tp4b_ablit_best.sh` on Reddie (go script `~tonyspark3/exl3tp4b-ablit-best-go.sh` on Asusi, patch set `dsv41-exl3-sr2roce` on all 4 nodes).
+- **Live since 2026-09-14 15:55 UTC: the same config at 500K context** (`exl3tp4b-ablit-best500k-go.sh`, KV pool 4,205,850 tokens, 8.41x at 500K). Restore it with `GO=exl3tp4b-ablit-best500k-go.sh bash /root/restore_exl3tp4b_ablit_best.sh`.
+- **Restore (300K):** `bash /root/restore_exl3tp4b_ablit_best.sh` on Reddie (go script `~tonyspark3/exl3tp4b-ablit-best-go.sh` on Asusi, patch set `dsv41-exl3-sr2roce` on all 4 nodes).
 - **The pre-speed-run config:** `bash /root/restore_exl3tp4b_ablit.sh`.
 - **Rollbacks without a rebuild:** `VLLM_ENABLE_ROCE_ALLREDUCE=0` (back to NCCL), `DSV41_INDEXER_TP_SPLIT=0`, `DSV41_ENGRAM_FAST=0`.
 - **Measured opt-ins, not on by default:**
