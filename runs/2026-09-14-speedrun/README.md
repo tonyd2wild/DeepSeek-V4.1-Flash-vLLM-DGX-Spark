@@ -76,6 +76,7 @@ SCREEN results against the baseline SCREEN. Aggregate tok/s is the mean of the 8
 | E09 | E02 + 128 Engram read threads | 3,501,822 (+6.9%) | 56.3 (+3.7%) | 118.0 (+2.9%) | 185.4 (+11.5%) | 85.5 | 71.5 | 78.3 | 34.3 | **1,897 / 1,983** | PASS |
 | **b1** | **E02 + E09 + E19 (best so far)** | **3,625,526 (+10.7%)** | **58.9 (+8.5%)** | **124.8 (+8.7%)** | **197.9 (+19.0%)** | **91.8** | 62.0 | 80.2 | **42.5** | **1,918 / 1,977** | PASS, needle 65K/131K PASS |
 | b1-idxsplit | b1 + indexer prefill TP-split (ours) | 3,588,541 (+9.6%) | 60.0 (+10.6%) | 126.5 (+10.2%) | 190.4 (+14.5%) | 92.9 | 64.3 | 84.5 | 40.4 | 1,895 / 1,993 | PASS; needle 131K prefill 2,042 vs b1 1,921 (+6.3%) |
+| f-gmu82 | final + gmu 0.82 (opt-in: 10-11 GB left on two nodes) | **4,112,016 (+25.6%)** | 60.0 (+10.6%) | 122.4 (+6.7%) | 191.4 (+15.1%) | 93.4 | 62.5 | 84.5 | 38.6 | 1,900 / 1,993 | PASS |
 | b1-ctx1m | b1 at 1,048,576 context (proof; the final serves 300K) | 3,634,353 (+11.0%) | 61.2 (+12.8%) | 120.7 (+5.1%) | 179.6 (+7.9%) | 93.6 | 82.8 | 82.7 | 42.1 | 1,896 / 1,983 | PASS; needle at 520,921 tokens PASS (TTFT 384 s) |
 | b1-gmu85 | b1 + gmu 0.85 (not in final: ~6 GB left on two nodes, 8K prefill -28%) | **4,923,401 (+50.3%)** | 59.6 (+9.8%) | 124.5 (+8.4%) | 194.9 (+17.1%) | 89.3 | 72.8 | 83.8 | 39.5 | 1,377 / 1,880 | PASS |
 | b1-idxlogits | b1 + 1 GB indexer logits cap (dropped, noise) | 3,571,395 (+9.1%) | 58.8 (+8.3%) | 121.9 (+6.2%) | 193.5 (+16.3%) | 88.2 | 66.5 | 85.2 | 41.5 | 1,942 / 2,003 | PASS |
@@ -109,6 +110,9 @@ Everything else is unchanged: TP4, DSpark k=5, CUDA graphs FULL_AND_PIECEWISE, 3
 - **Restore:** `bash /root/restore_exl3tp4b_ablit_best.sh` on Reddie (go script `~tonyspark3/exl3tp4b-ablit-best-go.sh` on Asusi, patch set `dsv41-exl3-sr2roce` on all 4 nodes).
 - **The pre-speed-run config:** `bash /root/restore_exl3tp4b_ablit.sh`.
 - **Rollbacks without a rebuild:** `VLLM_ENABLE_ROCE_ALLREDUCE=0` (back to NCCL), `DSV41_INDEXER_TP_SPLIT=0`, `DSV41_ENGRAM_FAST=0`.
+- **Measured opt-ins, not on by default:**
+  - `export GMU=0.82` in the go script gives a 4,112,016-token pool (+14.6%) with no speed change, but leaves 10-11 GB available on the two wide-slice ranks.
+  - `MAXLEN=1048576` serves 1M context at the same pool (3.47 full-length requests).
 
 ## What we built tonight
 

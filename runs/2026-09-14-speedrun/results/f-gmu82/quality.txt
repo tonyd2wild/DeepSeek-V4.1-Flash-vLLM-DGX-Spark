@@ -1,0 +1,1 @@
+QUALITY PASS {'count': True, 'json': True, 'code': True, 'math': True, 'prose': True}
