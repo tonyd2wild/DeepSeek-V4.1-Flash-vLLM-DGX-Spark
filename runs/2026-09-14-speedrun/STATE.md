@@ -191,6 +191,7 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - **E17 block_m16: not queued.** `exl3_moe._block_m` already picks 16 at decode (384 experts, 6 per token: C6 = 36 tokens → 0.6 rows per expert); forcing 16 would only slow prefill (128 rows per expert → tier 128). Spare go script `sr-e18-nth256-go.sh` (`NCCL_NTHREADS=256`) exists if a slot opens.
 - **Engram GPU-resident idea: dead.** The Engram tables are most of the 430 GB model folder (16M-row vocab), far beyond the ~28 GB free per node.
 - **MTP:** the checkpoint has `mtp.0-2`, but vLLM rejects `method="mtp"` on V4.1 (speculative.py:687). DSpark stays.
+- **E20 k=4 (queued 07:45 after e12-ch4):** E05 showed step cost grows a lot with k (k=10 lost even on counting). Prose accepts ~1.9 tokens per step, so a k=4 round (5-token verify) may help prose and cost code a little. `sr-e20-k4-go.sh`.
 - **DSpark k rule** (`vllm/config/speculative.py`): n_predict = dspark_block_size (5); k above 5 must be a multiple of 5. So k=1-5 and 10 are valid; k=4 is a possible prose lever.
 - **To stop a queue:** `touch /var/tmp/boot-results/speedrun/queue.stop` (checked before each label), or `pkill -f "sr_queue.sh"`. Do NOT kill a running `sr_run.sh` mid-boot.
 
@@ -202,6 +203,8 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 ## Experiment log
 | # | change | boot | KV | C1 agg | C3 agg | C6 agg | code C1 | prefill 32K | verdict |
 |---|---|---|---|---|---|---|---|---|---|
+| E19 | E02 + b12x RoCE one-shot all-reduce (`exl3b-roce`, `dsv41-exl3-sr1roce`) | 512 s, OK; "RoCEnante all-reduce is live" (first 409,600 B), all-gather live; backends `B12X_ROCENANTE` first; MXFP8 kernels unchanged (Emulation + FlashInferCutlass, as on exl3a) | **3,608,160** (+2.9% vs E02) | **60.1** (+2.2%) | **125.3** (+5.2%) | **191.7** (+1.2%) | **92.5** (+10.8%) | 1,793; 8K 1,682; probe 2,016 | **KEEP, big decode win**: prose 43.9 vs 37.7 (+16%), code 92.5 vs 83.5, idle count 117.3 vs 110.6, idle code 84.6 vs 81.5. Quality PASS. Credits @original-el8, @lukealonso |
+| E05 | E02 + `SPEC_K=10` | 544 s, OK | 3,450,837 | 44.8 | 87.6 | 126.2 | 74.3 | 1,768; 8K 1,723; probe 2,012 | **DROP**: C1 -24%, C6 -33% vs E02; even counting falls (idle 80.7 vs 110.6) and prose 23.9. A 10-token DSpark round costs more than it accepts |
 | E04 | E02 + `--enable-batch-sharded-sampling` | 541 s, OK | 3,494,513 | 58.1 | 110.1 | 186.5 | 88.1 | 1,757; 8K 1,625; probe 1,986 | **DROP**: C3 -7.6% and C6 -1.6% vs E02, C1 flat. Quality PASS |
 | E09 | E02 + `ENGRAM_THREADS=128` | 513 s, OK | 3,501,822 | 56.3 | 118.0 | 185.4 | 85.5 | **1,983** (+13% vs E02); 8K **1,897** (+14%); 39.6K probe 2,109 (E02 2,016) | **KEEP for prefill** (+13-14%). Decode -2 to -4% vs E02 (prose 34.3 vs 37.7), likely noise but check in the final combo; if decode holds lower, try 64 threads |
 | E03 | E02 + b12x MXFP8 dense (`vllm-dsv41:exl3b`, other MXFP8 kernels disabled) | 514 s, OK ("Using B12xMxfp8LinearKernel") | 3,484,154 | 54.6 | 118.1 | 188.1 | 82.1 | 1,691; 8K 1,566; 39.6K probe 1,914 (E02 2,016) | **DROP**: slower than E02 on C1, prefill and the probe. JSON C1 59.0 vs E02 84.0 shows JSON is noisy run to run |
@@ -221,6 +224,13 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
   - All-reduce is PYNCCL only.
 - **Harness deployed on Reddie:** `/root/sr_boot.sh <go> <label>` and `/root/sr_screen.sh <label>`. Local copies are in `tools/`.
 - **Mac:** keep-awake requested (session_idle).
+
+## 07:59 rebase: the b1 ladder (`/root/mk_b1.sh`)
+- **b1** = E02 (ch8 + Engram fast) + E09 (`ENGRAM_THREADS=128`) + E19 (RoCE, image `exl3b-roce`, patch set `dsv41-exl3-sr1roce`). Every `b1-*` label is b1 plus ONE change.
+- Go scripts on Asusi: `sr-b1-best`, `sr-b1-idxsplit` (patch set `dsv41-exl3-sr2roce` = sr1roce + split indexer, on all 4 nodes), `sr-b1-k4`, `sr-b1-mb16k`, `sr-b1-idxlogits`, `sr-b1-ctx1m`, `sr-b1-noexpseg`, `sr-b1-gmu85`, `sr-b1-shexp`.
+- `queue.txt` after the running e14-idxsplit (E02 base): b1-best, b1-k4, b1-mb16k, b1-idxlogits, b1-ctx1m, b1-noexpseg, b1-gmu85, b1-shexp. If E14 wins, insert `b1-idxsplit` right after b1-best.
+- Removed: e12-ch4, e15-tree, e16-ch2 (with RoCE, NCCL only carries messages over 2 MB, i.e. prefill, so small-message NCCL tuning no longer applies) and the E02-based e20/e06/e10/e11/e07/e08/e13 (replaced by their b1 versions).
+- Timeline: e14 ends ~08:15, then ~15 min per label; the `*best*` and `*idxsplit*` screens add the 64K/128K needle. Cut at ~10:15 for the final.
 
 ## Next action (updated 07:16)
 - Running: E04 `e04-bss` (queue-1b), then E05 `e05-k10`, then the dynamic queue (`queue.txt`) from ~07:45.

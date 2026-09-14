@@ -1,0 +1,86 @@
+=== sr_boot e05-k10 (sr-e05-k10-go.sh) 07:29:07
+== stop before-e05-k10 on all 4 (TP3 head Bluey first) 07:29:07
+  spark-3977 exited exit=0
+  gx10-2f59 exited exit=0
+  spark-9de7 exited exit=0
+  gx10-25b7 exited exit=0
+== node checks
+gx10-2f59 up up 23 hours, 48 minutes
+  NFS model OK
+  engram rows: :{"1":[192001740,288003654],"14":[192007016,288011564]},"created":"2026-09-10T15:46:44Z","n
+  image exl3a OK
+  patch set tp3e OK
+  launcher OK
+  MemAvailable 116 GiB
+spark-9de7 up up 23 hours, 49 minutes
+  image exl3a OK
+  patch set tp3e OK
+  launcher OK
+  MemAvailable 116 GiB
+spark-3977 up up 23 hours, 49 minutes
+  NFS model OK
+  engram rows: :{"1":[288003654,384006168],"14":[288011564,384016682]},"created":"2026-09-10T15:46:44Z","n
+  image exl3a OK
+  patch set tp3e OK
+  launcher OK
+  MemAvailable 116 GiB
+gx10-25b7 up up 23 hours, 48 minutes
+  NFS model OK
+  engram rows: :{"1":[96000564,192001740],"14":[96003054,192007016]},"created":"2026-09-10T15:47:11Z","not
+  image exl3a OK
+  patch set tp3e OK
+  launcher OK
+  MemAvailable 117 GiB
+== burn (healthy 75-90 TFLOPS)
+  reddie TFLOPS 88.7 under load: 2210 MHz, 89.20 W  
+  asusi TFLOPS 89.0 under load: 2249 MHz, 92.11 W  
+  bluey TFLOPS 88.7 under load: 2158 MHz, 87.18 W  
+  spark4 TFLOPS 90.4 under load: 2281 MHz, 91.12 W  
+== sidecars
+07:30:14 flusher2 start limit=4GiB droppable
+07:30:16 flusher2 start limit=4GiB droppable
+07:30:18 flusher2 start limit=4GiB droppable
+07:30:19 memguard4 start limit=5GiB
+== launch 07:30:20
+exl3tp4b-ablit go 2026-09-14T07:30:20Z head=reddie patch=dsv41-exl3-tp3e model=DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated gmu=0.80 maxlen=300000 eager=0 spec=dspark k=5 text_only=0
+speedrun e05-k10 overrides applied
+knobs: EXP_NAME='exl3tp4b-ablit' GMU='0.80' MAXLEN='300000' SEQS='8' EAGER='0' CUDAGRAPH_MODE='FULL_AND_PIECEWISE' SPEC='dspark' SPEC_K='10' IMAGE='vllm-dsv41:exl3a' MODEL_DIR='DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated' ENGRAM_LOCAL_HOST='/var/tmp/engram-local/DeepSeek-V4.1-Flash' ENGRAM_DISK='1' ENGRAM_LOCAL='1' PATCH_NAME='dsv41-exl3-sr1' TEXT_ONLY='0' THINKING='false' PARSERS='1' RUST_FE='0' VLLM_EXTRA='--block-size 128 --limit-mm-per-prompt {"image":4} --mm-processor-cache-gb 1' NCCL_EXTRA='-e MAX_JOBS=2 -e FLASHINFER_NVCC_THREADS=1 -e VLLM_USE_FLASHINFER_SAMPLER=0 -e TILELANG_CACHE_DIR=/cache/tilelang -e TRITON_CACHE_DIR=/cache/triton -e NCCL_MAX_NCHANNELS=8 -e DSV41_ENGRAM_FAST=1'
+== rank 3 Bluey ==
+vllm_dsv41
+135d59ef187e323b4b59d9129c1f26151c8c444d363776cb0f11b16e1896156a
+launched vllm_dsv41 rank=3 exp=exl3tp4b-ablit image=vllm-dsv41:exl3a patches=/home/tonyspark1/patches/dsv41-exl3-sr1 gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[10,11,20,22,30,33,40,44,50,55,60,66,70,77,80,88] spec=dspark adapt=false engram_disk=1 engram_local=yes text_only=0 avail=116GiB
+vllm_dsv41 Up 3 seconds
+== rank 2 Asusi ==
+vllm_dsv41
+079602b0ebe1b65d6c4b2c01cc5ec44c1ef5461236d257835b24e8feab252c2e
+launched vllm_dsv41 rank=2 exp=exl3tp4b-ablit image=vllm-dsv41:exl3a patches=/home/tonyspark3/patches/dsv41-exl3-sr1 gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[10,11,20,22,30,33,40,44,50,55,60,66,70,77,80,88] spec=dspark adapt=false engram_disk=1 engram_local=yes text_only=0 avail=116GiB
+vllm_dsv41 Up 3 seconds
+== rank 1 Spark4 ==
+vllm_dsv41
+5fb18b208aa9e0496034e4942275cd8948781cc025888af4fe03c10f8bcfa501
+launched vllm_dsv41 rank=1 exp=exl3tp4b-ablit image=vllm-dsv41:exl3a patches=/home/tonyspark4/patches/dsv41-exl3-sr1 gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[10,11,20,22,30,33,40,44,50,55,60,66,70,77,80,88] spec=dspark adapt=false engram_disk=1 engram_local=yes text_only=0 avail=116GiB
+vllm_dsv41 Up 3 seconds
+== rank 0 Reddie (head) ==
+vllm_dsv41
+d561e578ad706c6b8bde73627fab9e4991e2c2527d2c6efa09264fb19435ad6e
+launched vllm_dsv41 rank=0 exp=exl3tp4b-ablit image=vllm-dsv41:exl3a patches=/home/tonyspark2/patches/dsv41-exl3-sr1 gmu=0.80 maxlen=300000 seqs=8 eager=0 cg=FULL_AND_PIECEWISE[10,11,20,22,30,33,40,44,50,55,60,66,70,77,80,88] spec=dspark adapt=false engram_disk=1 engram_local= text_only=0 avail=116GiB
+vllm_dsv41 Up 3 seconds
+all four launched Mon Sep 14 07:30:43 AM UTC 2026
+boot_dsv41_tp4x exit=0 2026-09-14T07:30:43Z
+07:30:45 R=running S4=running A=running B=running | minAvail~110GiB | no-shards-yet | no-milestone | err: none 
+07:32:49 R=running S4=running A=running B=running | minAvail~40GiB | shards~25% | no-milestone | err: none 
+07:34:55 R=running S4=running A=running B=running | minAvail~40GiB | shards~75% | no-milestone | err: none 
+07:37:00 R=running S4=running A=running B=running | minAvail~15GiB | shards~100% | GPU KV cache size: 3,450,837 tokens | RUNTIME-JIT: Building JIT module trtllm_utils | err: none 
+SERVING 07:38:02 after 535s
+=== serving-time memory tools
+gx10-2f59 07:38:07 memfree_flusher start min_free=4GiB for 86400s
+gx10-25b7 07:38:09 memfree_flusher start min_free=4GiB for 86400s
+serving guard: 07:38:11 low: asusi=17 reddie=29 bluey=30 spark4=17 (serving, new minimum)
+=== milestones
+non-default args: {'model_tag': '/models/DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated', 'default_chat_template_kwargs': {'thinking': False}, 'enable_auto_tool_choice': True, 'tool_call_parser': 'deepseek_v41', 'host': '0.0.0.0', 'model': '/models/DeepSeek-V4.1-Flash-EXL3-Pollard-Abliterated', 'max_model_len': 300000, 'served_model_name': ['deepseek-v4.1-flash'], 'reasoning_parser': 'deepseek_v41',
+Model loading took 56.61 GiB memory and 265.973693 seconds
+Graph capturing finished in 5 secs, took -3.66 GiB
+Available KV cache memory: 30.69 GiB
+GPU KV cache size: 3,450,837 tokens, Maximum concurrency for 300,000 tokens per request: 11.50x
+Graph capturing finished in 4 secs, took 0.65 GiB
+=== sr_boot e05-k10 done 07:38:11
