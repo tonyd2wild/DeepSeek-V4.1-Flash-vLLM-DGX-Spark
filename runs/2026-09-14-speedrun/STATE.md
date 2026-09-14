@@ -237,7 +237,8 @@ The container runs `vllm-dsv41:exl3b` and logs "Using B12xMxfp8LinearKernel for 
 - 09:55:08 queue.stop set; 09:55:56 b1-ctx1m finished and the dynamic queue exited (b1-noexpseg and b1-shexp not run).
 - 09:56:08 final labels b1-best + b1-idxsplit; 09:56:10 `exl3tp4b-ablit-best-go.sh` written (IMAGE exl3b-roce, PATCH sr2roce, 128 threads, RoCE env, TP split) and `restore_exl3tp4b_ablit_best.sh` started.
 - **10:05:00 SERVING final-best** through `restore_exl3tp4b_ablit_best.sh` (the documented restore path works). Postcheck: count correct at 97.0 / 109.4 tok/s, code 79.3 / 88.3 tok/s (non-streaming), tool call `get_weather` OK, vision "Red" OK. Boot log: TP split on, Engram FAST on, RoCE all-reduce live, KV 3,615,772 tokens (12.05x at 300K).
-- Running: `sr_final.sh final-best` (~25 min), then the 131K needle and liveness. Then fill the README final numbers; 11:00 issue/PR pass.
+- **10:12:43 FINALIZE DONE.** `sr_final` 10:05-10:11: vision/tools 7/7, quality PASS, idle test 117-118 tok/s counting (49-50 ms/step), full C1-C6 aggregate 60.75 / 99.32 / 125.17 / 153.45 / 180.14 / 192.02 (+8.0 / +14.3 / +9.1 / +12.6 / +15.0 / +14.5% vs baseline), TTFT C1 0.208 s, cold prefill 1,844 / 1,991 / 2,009 / 2,021 (+35-38%), KV 3,615,772 (+10.4%). Needle 130,258 tokens PASS at 2,053 tok/s. Liveness probe running (`liveness.log`, first check ok 0.26 s).
+- Remaining: 11:00 UTC issue/PR pass (drafts ready, heads recorded), final commit and push, memory update, summary for Tony.
 
 ## UNATTENDED FINALIZER (armed 08:30, `/root/sr_finalize.sh`, status `finalize.status`, log `finalize.log`)
 - At 09:55 UTC it sets `queue.stop`, waits for the running label, then builds the final go script from **`/var/tmp/boot-results/speedrun/final-labels.txt`** (now: `b1-best`; add winning `b1-*` labels on new lines, b1-best first; several labels are merged by `sr_combo.sh`).

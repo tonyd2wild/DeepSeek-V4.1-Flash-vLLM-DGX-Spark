@@ -2,7 +2,31 @@
 
 Goal: make DeepSeek-V4.1-Flash faster on the four DGX Sparks. The targets were decode, prefill, TTFT and throughput at C1-C6 across code, JSON, math, prose, reasoning, tables, summary, narrative and counting. The night ends with the uncensored build (EXL3-Pollard-Abliterated) serving on the best config found.
 
-**Status: in progress.** This page is filled in as results land. The live log is [`STATE.md`](STATE.md).
+**Status: experiments complete.** The final config has been serving since 10:05 UTC (6:05 AM ET), booted through the documented restore script. The live log is [`STATE.md`](STATE.md).
+
+## Final result vs baseline (same full bench, same prompts, cold prefill)
+
+| | Baseline | Final | Change |
+|---|---|---|---|
+| C1 aggregate tok/s | 56.27 | **60.75** | +8.0% |
+| C2 aggregate | 86.89 | **99.32** | +14.3% |
+| C3 aggregate | 114.70 | **125.17** | +9.1% |
+| C4 aggregate | 136.30 | **153.45** | +12.6% |
+| C5 aggregate | 156.62 | **180.14** | +15.0% |
+| C6 aggregate | 167.68 | **192.02** | +14.5% |
+| C1 per-stream | 63.19 | **66.63** | +5.4% |
+| TTFT C1 / C6 (s) | 0.276 / 0.456 | **0.208 / 0.394** | -25% / -14% |
+| Cold prefill, 2,950 tokens | 1,369 | **1,844** | +34.7% |
+| Cold prefill, 11,592 tokens | 1,443 | **1,991** | +38.0% |
+| Cold prefill, 46,810 tokens | 1,454 | **2,009** | +38.2% |
+| Cold prefill, 93,335 tokens | 1,468 | **2,021** | +37.7% |
+| KV pool (tokens) | 3,274,912 | **3,615,772** | +10.4% |
+| Context served | 300K | 300K | 1M proven on the same stack (needle at 520,921 tokens PASS) |
+
+- **Per-stream C1 by category:** code 84.0 → 91.9, JSON 75.4 → 77.0, math 78.5 → 84.7, reasoning 70.2 → 76.6, tables 91.1 → 96.7, summary 34.5 → 39.0, prose 37.0 → 38.0, narrative 34.9 → 29.1, counting 98.3 → 113.9.
+- **Checks on the final config:** vision and tools 7/7, quality gate PASS, idle step test 117-118 tok/s counting with no slow first request, needle at 130,258 tokens PASS (2,053 tok/s prefill), generation liveness probe running.
+- **Prose and narrative across concurrency (per-stream):** prose 38.0 / 34.9 / 28.2 / 26.4 / 24.3 / 21.7 vs baseline 37.0 / 29.4 / 25.9 / 23.2 / 21.9 / 19.8 (C1-C6); narrative 29.1 / 27.5 / 24.5 / 21.3 / 20.8 / 19.0 vs baseline 34.9 / 26.9 / 22.7 / 19.8 / 17.5 / 15.0.
+- **Caveat:** single-request cells are noisy run to run (JSON C1 ranged 59-84 across SCREEN boots of near-identical configs). Narrative at C1 is the one cell below baseline; at C2-C6 it is 2-27% above.
 
 ## Starting point (baseline, as found at 02:00 ET)
 

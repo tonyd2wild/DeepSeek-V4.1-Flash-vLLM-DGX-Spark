@@ -1,0 +1,23 @@
+{
+ "count": {
+  "pass": true,
+  "tokens": 200
+ },
+ "json": {
+  "pass": true,
+  "tokens": 35
+ },
+ "code": {
+  "pass": true,
+  "tokens": 103
+ },
+ "math": {
+  "pass": true,
+  "tokens": 2
+ },
+ "prose": {
+  "pass": true,
+  "tokens": 71
+ },
+ "all_pass": true
+}
