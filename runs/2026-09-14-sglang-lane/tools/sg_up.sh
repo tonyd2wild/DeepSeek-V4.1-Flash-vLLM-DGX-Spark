@@ -12,9 +12,12 @@ echo "=== sg_up $LBL $(date -u +%T) patches=$P $FWD"
 touch /var/tmp/boot-results/speedrun/liveness.stop
 echo "--- stop vLLM and any SGLang on all 4"
 docker stop -t 60 vllm_dsv41 > /dev/null 2>&1; docker rm -f sglang_dsv41 > /dev/null 2>&1
+pids=()
 for h in tonyspark4@192.168.192.4 tonyspark3@192.168.192.3 tonyspark1@192.168.192.1; do
   $J -n $h 'docker stop -t 60 vllm_dsv41 > /dev/null 2>&1; docker rm -f sglang_dsv41 > /dev/null 2>&1; echo "$(hostname) stopped; MemAvailable $(awk "/MemAvailable/{print int(\$2/1048576)}" /proc/meminfo) GiB"' &
-done; wait
+  pids+=($!)
+done
+wait "${pids[@]}"   # a bare wait would also wait on the tee process substitution and never return
 echo "reddie MemAvailable $(awk '/MemAvailable/{print int($2/1048576)}' /proc/meminfo) GiB"
 T0=$(date -u +%s)
 echo "--- start workers (3, 2, 1), then head (0)"

@@ -39,4 +39,6 @@ Goal (Tony, 13:10 UTC): stand up DeepSeek-V4.1-Flash UNCENSORED on SGLang across
   - as rank 2 (mixed: Bluey's local copy covers only [288,003,654, 288,004,626) of rank 2's range, the rest from Reddie over NFS): layers 1 and 14 EQUAL=True, 125 of 128 ids nonzero (3 unowned ids zero as required);
   - as rank 3 (pure local): layers 1 and 14 EQUAL=True;
   - timings (second call): 288 rows 0.4-1.3 ms, 98,304 random ids 10.2-13.9 ms.
+- 13:46-13:49 `sg_up.sh` hung after stopping vLLM: a bare `wait` also waits on the `tee` process substitution and never returns. Killed by PID, fixed (`wait "${pids[@]}"`), restarted 13:49 fully detached. The endpoint was down from 13:46.
+- 13:49 all 4 SGLang ranks started (3, 2, 1, then 0); head log: "Auto-detected DSV4 routed-expert layout: is_fp4_experts=True".
 - **13:46 boot `sg1` started** (`/root/sg_up.sh sg1`, log `/var/tmp/boot-results/sglang/boot-sg1.log`): stops vLLM on all 4 nodes, then SGLang ranks 3, 2, 1, 0.
