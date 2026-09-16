@@ -109,6 +109,8 @@ The baseline lane `exl3tp4b-ablit`, plus:
 | Indexer prefill TP-split | patched `sparse_attn_indexer.py`, `-e DSV41_INDEXER_TP_SPLIT=1` | ours |
 | CUDA allocator without expandable segments | `-e PYTORCH_CUDA_ALLOC_CONF=expandable_segments:False` | ecohash-co (issue #2) |
 
+- **Caveat on `expandable_segments:False`** (koldfrontier, issue #9): our measurement found no speed cost, but our final config sends all-reduces up to 2 MB over the b12x RoCE path. On a fleet that runs decode all-reduces over NCCL they measured decode step time 19-37% worse with the flag. If you run NCCL for decode, gate this flag on `idletest.py` step time, not on the KV pool.
+
 Everything else is unchanged: TP4, DSpark k=5, CUDA graphs FULL_AND_PIECEWISE, 300K context, gmu 0.80, vision (4 images) and tools on, thinking off.
 
 - **Live since 2026-09-14 15:55 UTC: the same config at 500K context** (`exl3tp4b-ablit-best500k-go.sh`, KV pool 4,205,850 tokens, 8.41x at 500K). Restore it with `GO=exl3tp4b-ablit-best500k-go.sh bash /root/restore_exl3tp4b_ablit_best.sh`.
