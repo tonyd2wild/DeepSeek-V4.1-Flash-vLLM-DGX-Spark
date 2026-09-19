@@ -172,3 +172,17 @@ gmu 0.80 (0.82 documented as the context opt-in: KV 4,775,278, 15 GB free on the
 - 08:57 full measurement running (`/root/s2_final_measure.sh`): sr_final vs s2-00-baseline, needles 65K/131K, C8/C12.
 - Plan for the remaining hours: leave the final up and re-measure prefill at ~12:30 (3.5 h old) for the aging
   question; post the issue #8 answer; write README; final health check before 13:25. dq stopped (queue empty).
+
+## Final measurement (09:03 UTC) and close-out
+- s2-final: C1-C6 agg 61.3 / 102.3 / 128.9 / 153.4 / 174.3 / 189.3 (baseline 58.3 / 90.6 / 110.8 / 146.0 / 164.3 /
+  184.8); TTFT 0.205 / 0.381 s; cold prefill 1,939 (2.9K) and 2,048 (93K), probe 2,223 (39.6K); 8K/32K cells hit the
+  prefix cache on the final lane (no reset endpoint in this build, 404), so e12's boot-time 1,878 / 2,007 stand for
+  them; idle 117.3 / 95.3; needles 65,076 and 130,291 PASS; C8 coding 376.4, C12 coding 474.7, C12 count 639.9;
+  quality PASS, vision+tools 7/7. Container up since 08:52:07 UTC.
+- Repo: README + STATE + tools + patches (exl3-limit diff, sr3, sr4) + results committed and pushed as f6534dc,
+  main README paragraph added, NVFP4 folder included. Issue #8 answered with the measured A/B (neutral here).
+- 09:22 armed `/root/s2_age_recheck.sh`: prefill probe + idle test at 12:30 (lane 3.5 h old), health line at 13:15.
+- Deadline 13:25 UTC: the final stays up. Liveness probe running (2 tokens / 120 s).
+- 12:31 AGE-RECHECK on the final lane at 3.6 h old: probe 2,230 tok/s (fresh 2,223), idle count 115.9 / code 95.7
+  (fresh 117.3 / 95.3), 24 GiB available. **No aging in 3.6 h.** The 15 h lane's slowdown either needs longer or
+  was specific to that lane (booted 90 min after Reddie's second 09-18 reboot, not by this session). Open.
