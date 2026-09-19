@@ -186,3 +186,5 @@ gmu 0.80 (0.82 documented as the context opt-in: KV 4,775,278, 15 GB free on the
 - 12:31 AGE-RECHECK on the final lane at 3.6 h old: probe 2,230 tok/s (fresh 2,223), idle count 115.9 / code 95.7
   (fresh 117.3 / 95.3), 24 GiB available. **No aging in 3.6 h.** The 15 h lane's slowdown either needs longer or
   was specific to that lane (booted 90 min after Reddie's second 09-18 reboot, not by this session). Open.
+- 13:15 HEALTH: endpoint ok, container up 4 h (since 08:52:07), 0 liveness alerts since the final boot (the 27 in the
+  log are from the 13 experiment boots, last 08:50:36). **Deadline 13:25 met: the final config is serving.**
