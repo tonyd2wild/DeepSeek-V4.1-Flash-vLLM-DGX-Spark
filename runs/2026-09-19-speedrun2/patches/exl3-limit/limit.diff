@@ -1,0 +1,97 @@
+diff -ruN a/src/cuda_exl3/csrc/bindings.cpp b/src/cuda_exl3/csrc/bindings.cpp
+--- a/src/cuda_exl3/csrc/bindings.cpp	2026-09-11 15:18:05.000000000 +0000
++++ b/src/cuda_exl3/csrc/bindings.cpp	2026-09-19 06:14:45.629534579 +0000
+@@ -14,7 +14,7 @@
+ int64_t exl3_get_moe_acc_cap();
+ void exl3_moe_glu_had_in(const at::Tensor& x, at::Tensor& out, const at::Tensor& suh,
+                          const at::Tensor& expert_ids, const at::Tensor& n_rows,
+-                         int64_t block_m);
++                         int64_t block_m, double limit);
+ at::Tensor exl3_moe_combine(const at::Tensor& rows_out, const at::Tensor& sorted_ids,
+                             const at::Tensor& topk_weights, int64_t num_tokens,
+                             const std::optional<at::Tensor>& expert_ids,
+@@ -56,7 +56,7 @@
+         "bool skip_padding=False) -> ()");
+     m.def(
+         "exl3_moe_glu_had_in(Tensor x, Tensor(a!) out, Tensor suh, Tensor expert_ids, "
+-        "Tensor n_rows, int block_m) -> ()");
++        "Tensor n_rows, int block_m, float limit=0.) -> ()");
+     m.def(
+         "exl3_moe_gemm(Tensor a_had, Tensor trellis, Tensor suh, Tensor svh, "
+         "Tensor expert_ids, Tensor n_rows, int[] group_n, int cb, int block_m, "
+diff -ruN a/src/cuda_exl3/csrc/exl3_had.cuh b/src/cuda_exl3/csrc/exl3_had.cuh
+--- a/src/cuda_exl3/csrc/exl3_had.cuh	2026-09-11 15:18:05.000000000 +0000
++++ b/src/cuda_exl3/csrc/exl3_had.cuh	2026-09-19 06:14:45.629297810 +0000
+@@ -141,7 +141,7 @@
+                                                    const IN_T* __restrict__ up,
+                                                    half* __restrict__ out,
+                                                    const half* __restrict__ scale_pre,
+-                                                   int lane)
++                                                   int lane, float limit)
+ {
+     half4 g = ActVec<IN_T>::load(gate, lane);
+     half4 u = ActVec<IN_T>::load(up, lane);
+@@ -149,9 +149,19 @@
+ 
+     // silu(x) = x / (1 + exp(-x)). __expf is ~2^-21 accurate, far below the
+     // quantization error it feeds into.
+-    auto glu = [] (half hg, half hu, half hs) {
++    // limit > 0 applies the clamped SwiGLU (DeepSeek V4.1 swiglu_limit):
++    // gate = min(gate, limit), up = clamp(up, -limit, limit), before silu.
++    // Written as compares (not fminf/fmaxf) so a NaN passes through exactly
++    // like torch.clamp does. limit <= 0 is the plain silu(g) * u.
++    auto glu = [limit] (half hg, half hu, half hs) {
+         float x = __half2float(hg);
+-        return x * __frcp_rn(1.0f + __expf(-x)) * __half2float(hu) * __half2float(hs);
++        float y = __half2float(hu);
++        if (limit > 0.0f)
++        {
++            x = (x > limit) ? limit : x;
++            y = (y > limit) ? limit : ((y < -limit) ? -limit : y);
++        }
++        return x * __frcp_rn(1.0f + __expf(-x)) * y * __half2float(hs);
+     };
+     float v0 = glu(__low2half(g.x),  __low2half(u.x),  __low2half(s.x));
+     float v1 = glu(__high2half(g.x), __high2half(u.x), __high2half(s.x));
+diff -ruN a/src/cuda_exl3/csrc/hadamard.cu b/src/cuda_exl3/csrc/hadamard.cu
+--- a/src/cuda_exl3/csrc/hadamard.cu	2026-09-11 15:18:05.000000000 +0000
++++ b/src/cuda_exl3/csrc/hadamard.cu	2026-09-19 06:14:45.629476690 +0000
+@@ -300,7 +300,7 @@
+                                            const half* __restrict__ suh,
+                                            const int* __restrict__ expert_ids,
+                                            const int* __restrict__ n_rows,
+-                                           int rows, int k, int block_m)
++                                           int rows, int k, int block_m, float limit)
+ {
+     int blocks_per_row = k / 128;
+     long long total = (long long) rows * blocks_per_row;
+@@ -320,12 +320,12 @@
+     const IN_T* gate = x + (long long) row * 2 * k + blk * 128;
+     had128_warp_glu_in<IN_T>(gate, gate + k,
+                              a_had + (long long) row * k + blk * 128,
+-                             suh + (long long) e * k + blk * 128, lane);
++                             suh + (long long) e * k + blk * 128, lane, limit);
+ }
+ 
+ void exl3_moe_glu_had_in(const at::Tensor& x, at::Tensor& out, const at::Tensor& suh,
+                          const at::Tensor& expert_ids, const at::Tensor& n_rows,
+-                         int64_t block_m)
++                         int64_t block_m, double limit)
+ {
+     const at::cuda::OptionalCUDAGuard guard(x.device());
+     TORCH_CHECK(out.scalar_type() == at::kHalf, "exl3_moe_glu_had_in: out must be float16");
+@@ -355,12 +355,12 @@
+         exl3_moe_glu_had_in_kernel<half><<<(unsigned) blocks, threads, 0, stream>>>(
+             (const half*) x.data_ptr(), (half*) out.data_ptr(),
+             (const half*) suh.data_ptr(), expert_ids.data_ptr<int>(), nr,
+-            rows, k, (int) block_m);
++            rows, k, (int) block_m, (float) limit);
+     else if (x.scalar_type() == at::kBFloat16)
+         exl3_moe_glu_had_in_kernel<__nv_bfloat16><<<(unsigned) blocks, threads, 0, stream>>>(
+             (const __nv_bfloat16*) x.data_ptr(), (half*) out.data_ptr(),
+             (const half*) suh.data_ptr(), expert_ids.data_ptr<int>(), nr,
+-            rows, k, (int) block_m);
++            rows, k, (int) block_m, (float) limit);
+     else
+         TORCH_CHECK(false, "exl3_moe_glu_had_in: x must be float16 or bfloat16");
+     C10_CUDA_KERNEL_LAUNCH_CHECK();

@@ -1,0 +1,26 @@
+[s2-final-c8c12] warmup
+  C8 coding        agg  376.41 tok/s  per-stream 51.51  ttft 0.291s
+  C8 json          agg  233.39 tok/s  per-stream 37.03  ttft 0.475s
+  C8 narrative     agg  111.86 tok/s  per-stream 15.46  ttft 0.276s
+  C8 prose         agg  141.91 tok/s  per-stream 19.89  ttft 0.269s
+  C8 math          agg  350.59 tok/s  per-stream 49.14  ttft 0.375s
+  C8 reasoning     agg  231.53 tok/s  per-stream 34.51  ttft 0.362s
+  C8 summary       agg   98.21 tok/s  per-stream 17.0  ttft 1.203s
+  C8 format        agg  344.94 tok/s  per-stream 54.47  ttft 0.44s
+  C8 ceiling_count agg  490.02 tok/s  per-stream 65.46  ttft 0.262s
+  C12 coding        agg  474.72 tok/s  per-stream 43.39  ttft 0.401s
+  C12 json          agg  261.76 tok/s  per-stream 27.93  ttft 0.482s
+  C12 narrative     agg  138.60 tok/s  per-stream 13.57  ttft 0.327s
+  C12 prose         agg  159.43 tok/s  per-stream 15.84  ttft 0.528s
+  C12 math          agg  393.83 tok/s  per-stream 38.92  ttft 0.482s
+  C12 reasoning     agg  286.77 tok/s  per-stream 28.43  ttft 0.453s
+  C12 summary       agg  124.09 tok/s  per-stream 15.1  ttft 1.8s
+  C12 format        agg  383.07 tok/s  per-stream 42.7  ttft 0.569s
+  C12 ceiling_count agg  639.86 tok/s  per-stream 56.82  ttft 0.289s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/s2-final/hi/bench-s2-final-c8c12.json'

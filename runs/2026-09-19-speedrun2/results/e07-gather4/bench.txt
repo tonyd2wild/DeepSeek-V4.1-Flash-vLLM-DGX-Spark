@@ -1,0 +1,54 @@
+[e07-gather4] warmup
+  C1 coding        agg   83.95 tok/s  per-stream 90.59  ttft 0.185s
+  C1 json          agg   72.44 tok/s  per-stream 80.34  ttft 0.175s
+  C1 narrative     agg   31.57 tok/s  per-stream 32.6  ttft 0.19s
+  C1 prose         agg   40.31 tok/s  per-stream 42.31  ttft 0.169s
+  C1 math          agg   75.96 tok/s  per-stream 82.89  ttft 0.211s
+  C1 reasoning     agg   68.27 tok/s  per-stream 73.31  ttft 0.214s
+  C1 summary       agg   33.60 tok/s  per-stream 37.82  ttft 0.371s
+  C1 format        agg   81.71 tok/s  per-stream 97.95  ttft 0.223s
+  C1 ceiling_count agg  106.38 tok/s  per-stream 113.67  ttft 0.152s
+  C3 coding        agg  178.09 tok/s  per-stream 65.05  ttft 0.251s
+  C3 json          agg  107.06 tok/s  per-stream 43.05  ttft 0.341s
+  C3 narrative     agg   60.89 tok/s  per-stream 22.06  ttft 0.227s
+  C3 prose         agg   78.79 tok/s  per-stream 28.91  ttft 0.224s
+  C3 math          agg  162.92 tok/s  per-stream 62.13  ttft 0.267s
+  C3 reasoning     agg  114.36 tok/s  per-stream 46.18  ttft 0.277s
+  C3 summary       agg   64.42 tok/s  per-stream 24.88  ttft 0.657s
+  C3 format        agg  194.21 tok/s  per-stream 78.05  ttft 0.287s
+  C3 ceiling_count agg  244.37 tok/s  per-stream 87.77  ttft 0.221s
+  C6 coding        agg  318.99 tok/s  per-stream 58.29  ttft 0.289s
+  C6 json          agg  168.28 tok/s  per-stream 35.39  ttft 0.487s
+  C6 narrative     agg  106.21 tok/s  per-stream 19.3  ttft 0.254s
+  C6 prose         agg  114.15 tok/s  per-stream 21.04  ttft 0.256s
+  C6 math          agg  261.42 tok/s  per-stream 49.41  ttft 0.32s
+  C6 reasoning     agg  179.17 tok/s  per-stream 33.72  ttft 0.306s
+  C6 summary       agg  105.64 tok/s  per-stream 22.18  ttft 0.94s
+  C6 format        agg  262.73 tok/s  per-stream 55.11  ttft 0.382s
+  C6 ceiling_count agg  421.64 tok/s  per-stream 75.35  ttft 0.24s
+  prefill   8000: {'target': 8000, 'prompt_tokens': 11592, 'ttft_s': 7.086, 'prefill_tok_s': 1635.8}
+  prefill  32000: {'target': 32000, 'prompt_tokens': 46810, 'ttft_s': 27.541, 'prefill_tok_s': 1699.7}
+Prompt set `v1` (identical across boots), temperature 0, thinking off. Tokens from the server's usage block; TTFT = first token delta.
+
+### Throughput by concurrency (8 categories; the counting ceiling is excluded)
+
+| C | aggregate tok/s | per-stream tok/s | mean TTFT (s) |
+|---|---|---|---|
+| C1 | 60.98 | 67.23 | 0.217 |
+| C3 | 120.09 | 46.29 | 0.316 |
+| C6 | 189.57 | 36.8 | 0.404 |
+
+### Per-stream tok/s by category
+
+| category | C1 | C3 | C6 |
+|---|---|---|---|
+| coding | 90.59 | 65.05 | 58.29 |
+| json | 80.34 | 43.05 | 35.39 |
+| narrative | 32.6 | 22.06 | 19.3 |
+| prose | 42.31 | 28.91 | 21.04 |
+| math | 82.89 | 62.13 | 49.41 |
+| reasoning | 73.31 | 46.18 | 33.72 |
+| summary | 37.82 | 24.88 | 22.18 |
+| format | 97.95 | 78.05 | 55.11 |
+| ceiling_count | 113.67 | 87.77 | 75.35 |
+wrote /var/tmp/boot-results/speedrun/e07-gather4/bench-e07-gather4.json and .md

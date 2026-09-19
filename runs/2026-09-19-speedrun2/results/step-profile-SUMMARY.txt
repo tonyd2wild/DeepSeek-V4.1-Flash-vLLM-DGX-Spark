@@ -1,0 +1,31 @@
+sr2 per-step profile, 2026-09-19 06:16-06:31 UTC, lane: --max-model-len 300000 (control reboot 06:04-06:16; same config otherwise:
+TP4 EXL3, DSpark k=5, FULL_AND_PIECEWISE sizes [5..48], Engram DISK+FAST, RoCE allreduce 2MB, NCCL_MAX_NCHANNELS=8, INDEXER_TP_SPLIT=1, KV 3.78M tok).
+Files: <tag>_req.json (client chunks = steps), <tag>_n{2,4,3,1}.txt (Reddie,Spark4,Asusi,Bluey: nvidia-smi 100ms, MEM 200ms, bpftrace),
+<tag>_cycles_<node>.csv (per-step decomposition), <tag>_steps.csv, LANE.txt. Tools: node_sr2.sh drive_sr2.py run_sr2.sh analyze_sr2.py.
+Tags: c1count (count 1..2000, cold rows) c1code (code_long 3000 tok) c1cats (8 bench cats + ceiling) c6code c6count c2code c4code c3count
+      idle45 (45 s idle, count100/coding/count100) cron25 (count across 06:25:00 cron) cron30code (code across 06:30:00 cron). discard/: hit the reboot.
+
+1. C1 step (client p50/p90 ms; Reddie main-thread cycle = wait_gpu + host_pre + host_mid + host_post; ranks in lockstep):
+   count cold  57.7/60.4  (cycle 57.5: wait_gpu 47.5, pre 4.5[Engram faults 3.7], mid 2.4, post 3.1; Bluey pre 6.5[ff 5.6]); 6.0 tok/step, 104 tok/s
+   count warm  54.7/56.9  (cron25: Reddie pre 4.1[ff 3.3, its cache was dropped at 06:20], other ranks pre 1.1, ff 0); 109 tok/s
+   count80/100 warm 49.6-51.7 p50, 112-117 tok/s, 5.85 tok/step
+   code_long   56.8/65.4  (cycle 56.8: wait_gpu 48.2, pre 2.3, mid 2.45, post 3.15; Bluey pre 5.05[ff 4.2]); 5.33 tok/step, accept 4.33, 92 tok/s
+   bench coding 52.4 p50, 93.5 tok/s, 4.85 tok/step (rows warm)
+   cross-rank: step = max_rank(host_pre) + GPU_work.  GPU_work p50: 52.0 (code) 51 (count cold) 50.5 (count warm) 49.2 (warm cats).
+   max_rank(host_pre): 5.2 p50 / 11.8 p90 (code), 6.5 (count cold), 1.85 (warm).  Engram fault time (union, in pre): 4.3 p50 / 11.0 p90 (code), 0 warm.
+   host floor without faults ~1.0-1.2 ms. 294 eager cuLaunchKernel + 2 graph launches + 11 H2D per step on the main thread (mid+post ~5.6 ms, overlapped by GPU).
+   Fault latency per node (bpftrace window, code_long): Reddie 500us x13.3k, Spark4 182us x17.4k, Asusi 205us x20.4k, Bluey 465us x23.3k.
+2. Spikes (>p50+8ms): code 11.5-14.4% of steps (2.3-2.8% of time); count 0.7%.
+   58/62 (c1code) and 80/84 (cron30code) coincide with a host_pre stall >p50+5 on one rank (median 13 ms, Engram fault time 12 ms): Bluey 45+32, Reddie 16+50.
+   The rest (4+4): /root/liveness.sh (pid 1307065) POSTs a 16-token completion every 60 s -> 1 piecewise step (42 launches, 87-94 ms) + 4-5 C2 steps 66-80 ms.
+   NOT power/clocks: 23-25 W C1, 29-30 W C6, SM 2190/2190/2177/2171 MHz constant, no throttle. NOT drop_caches: drops at 06:25:02 (Reddie -9.8GB), 06:30:02 (Bluey -17.7GB)
+   -> step p50 55.8 before, 55.8-56.3 after. NOT 10 s periodic. Cron effect is indirect: evicts Engram pages -> steady +3-4 ms/step on that rank until rows re-fault.
+   After-idle 45 s: count100 54.5 vs 50.5 back-to-back; the +4 ms is Reddie pre 4.48 (ff 3.5, rows evicted by 06:20 cron) + ~1 ms mid/post; clocks stayed 2190.
+3. First 10 code steps: ms first10 vs rest = 56.9/57.8, 55.3/57.3, 51.9/51.9 (not slower; step 1 alone 65-68 ms). tok/step first10 vs rest = 4.0/5.35, 3.2/5.18, 4.6/4.94
+   -> DSpark acceptance ramp. Per-position acceptance (metrics delta, code_long): .973 .931 .876 .814 .737. Category accept_len: count 4.83-5.0, code 3.98-4.33,
+   format 4.0, math 3.31, json 3.28, reasoning 3.02, summary 1.24, prose 1.0, narrative 0.93. Graph size constant (6 tok, n_gl=2). 05:53 idletest "70 ms" overlapped the bench warm-up.
+4. Concurrency (bench coding 200 tok / ceiling_count): step p50 | per-stream | aggregate tok/s
+   C1 52.4 | 93 | 93   C2 63.1 | 76.2 | 137.6   C4 85.8 | 55.8 | 202.4   C6 95.7 (p90 102.4) | 51.2 | 271.9  (tok/step 4.85-4.92)
+   count: C1 50 | 115 | 115   C3 72.8 | 79.3 | 215.3   C6 89.0 (p90 91.2) | 65.9 | 356.7 (5.85 tok/step)
+   ~+8.5 ms per added stream; C6 = 1.83x C1 step for 6x tokens: ~45 ms of the C1 step is batch-independent (latency/weight-stream bound), marginal part bandwidth-ish. C6 GPU_work 90.5, host_pre max 4.0.
+5. Levers: see final report.

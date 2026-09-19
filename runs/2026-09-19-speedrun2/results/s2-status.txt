@@ -1,0 +1,53 @@
+06:02:55 e00-ctx300k = the 09-14 final-best script unchanged (300K); control for the prefill regression
+06:02:55 BOOT e00-ctx300k
+06:11:51 SERVING e00-ctx300k
+06:16:28 SCREENED e00-ctx300k
+06:32:02 dq started
+06:32:02 BOOT e05-roce32mb
+06:32:12 e10-ctx500k = the live 500K script unchanged, FRESH boot: is the 500K tax real or a stale-lane/page-cache effect?
+06:40:36 SERVING e05-roce32mb
+06:45:13 SCREENED e05-roce32mb
+06:45:13 BOOT e10-ctx500k
+06:53:47 SERVING e10-ctx500k
+06:58:26 SCREENED e10-ctx500k
+06:58:26 BOOT e06-exl3lim
+07:06:59 SERVING e06-exl3lim
+07:11:34 SCREENED e06-exl3lim
+07:11:34 dq: stop file, exiting
+07:11:34 dq exited
+07:15:07 dq started
+07:15:07 BOOT e09-sr4
+07:22:37 SERVING e09-sr4
+07:27:09 SCREENED e09-sr4
+07:27:09 BOOT e07-gather4
+07:35:42 SERVING e07-gather4
+07:40:22 SCREENED e07-gather4
+07:40:22 BOOT e08-sharedexp
+07:48:22 SERVING e08-sharedexp
+07:52:53 SCREENED e08-sharedexp
+07:52:53 BOOT e01-buffsize
+08:00:25 SERVING e01-buffsize
+08:04:58 SCREENED e01-buffsize
+08:04:58 BOOT e03-seqs16
+08:12:59 SERVING e03-seqs16
+08:17:30 SCREENED e03-seqs16
+08:17:30 dq: stop file, exiting
+08:17:30 dq exited
+08:19:30 dq started
+08:19:30 BOOT e11-final500k
+08:27:13 SERVING e11-final500k
+08:31:46 SCREENED e11-final500k
+08:31:46 BOOT e02-gmu82
+08:39:15 SERVING e02-gmu82
+08:43:52 SCREENED e02-gmu82
+08:43:52 BOOT e12-final500k-s16
+08:52:07 SERVING e12-final500k-s16
+08:56:43 SCREENED e12-final500k-s16
+08:56:43 dq: queue empty, sleeping 60
+08:57:15 FINAL-MEASURE start
+08:57:43 dq: stop file, exiting
+08:57:43 dq exited
+09:03:14 FINAL-MEASURE bench done
+09:05:00 FINAL-MEASURE needle done: 
+09:06:59 FINAL-MEASURE C8/C12 done
+09:06:59 FINAL-MEASURE DONE

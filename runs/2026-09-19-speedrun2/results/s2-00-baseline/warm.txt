@@ -1,0 +1,17 @@
+[s2-00-baseline-warm] warmup
+  C1 coding        agg   83.92 tok/s  per-stream 90.74  ttft 0.19s
+  C1 json          agg   57.68 tok/s  per-stream 63.98  ttft 0.231s
+  C1 narrative     agg   28.84 tok/s  per-stream 29.78  ttft 0.185s
+  C1 prose         agg   33.16 tok/s  per-stream 34.47  ttft 0.173s
+  C1 math          agg   55.74 tok/s  per-stream 61.27  ttft 0.309s
+  C1 reasoning     agg   50.82 tok/s  per-stream 53.61  ttft 0.222s
+  C1 summary       agg   39.83 tok/s  per-stream 45.32  ttft 0.31s
+  C1 format        agg   67.68 tok/s  per-stream 78.74  ttft 0.229s
+  C1 ceiling_count agg  101.35 tok/s  per-stream 107.97  ttft 0.153s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/s2-00-baseline/warm/bench-s2-00-baseline-warm.json'

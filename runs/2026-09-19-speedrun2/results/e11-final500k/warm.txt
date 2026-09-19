@@ -1,0 +1,17 @@
+[e11-final500k-warm] warmup
+  C1 coding        agg   80.74 tok/s  per-stream 86.82  ttft 0.184s
+  C1 json          agg   71.70 tok/s  per-stream 82.46  ttft 0.228s
+  C1 narrative     agg   31.80 tok/s  per-stream 32.84  ttft 0.176s
+  C1 prose         agg   33.60 tok/s  per-stream 35.1  ttft 0.175s
+  C1 math          agg   71.99 tok/s  per-stream 78.23  ttft 0.212s
+  C1 reasoning     agg   65.17 tok/s  per-stream 69.56  ttft 0.207s
+  C1 summary       agg   32.38 tok/s  per-stream 37.64  ttft 0.375s
+  C1 format        agg   71.34 tok/s  per-stream 83.18  ttft 0.239s
+  C1 ceiling_count agg   94.36 tok/s  per-stream 100.44  ttft 0.163s
+Traceback (most recent call last):
+  File "/root/v41bench.py", line 156, in <module>
+    main()
+  File "/root/v41bench.py", line 151, in main
+    json.dump(res, open(f"{args.out}/bench-{args.label}.json", "w"), indent=1)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/var/tmp/boot-results/speedrun/e11-final500k/warm/bench-e11-final500k-warm.json'
