@@ -1,0 +1,111 @@
+diff --git a/patch/engram.py b/patch/engram.py
+--- a/patch/engram.py
++++ b/patch/engram.py
+@@ -41,6 +41,7 @@ import torch
+ from torch import nn
+ 
+ # --- Tech2Wild/Kai 2026-09-10: disk-backed Engram tables for DGX Spark (UMA) ---
++import errno as _kai_errno
+ import json as _kai_json
+ import os as _kai_os
+ import struct as _kai_struct
+@@ -634,6 +635,21 @@ _DSV41_ENGRAM_DISK = _kai_os.environ.get("DSV41_ENGRAM_DISK", "0") == "1"
+ _KAI_THREADS = int(_kai_os.environ.get("DSV41_ENGRAM_DISK_THREADS", "32"))
+ _KAI_CHUNK = int(_kai_os.environ.get("DSV41_ENGRAM_DISK_CHUNK", "16"))
+ _KAI_POOL: _KaiPool | None = None
++_KAI_NOWAIT = getattr(_kai_os, "RWF_NOWAIT", None)
++_KAI_NOWAIT_UNSUPPORTED = frozenset(
++    code
++    for code in (
++        getattr(_kai_errno, "EINVAL", None),
++        getattr(_kai_errno, "ENOSYS", None),
++        getattr(_kai_errno, "ENOTSUP", None),
++        getattr(_kai_errno, "EOPNOTSUPP", None),
++    )
++    if code is not None
++)
++
++
++class _KaiNowaitUnsupported(Exception):
++    pass
+ 
+ 
+ def _kai_pool() -> _KaiPool:
+@@ -657,6 +673,68 @@ def _kai_pread_rows(
+             got += n
+ 
+ 
++def _kai_pread_nowait(fd: int, off: int, view) -> bool:
++    """Return False when a resident page is temporarily unavailable."""
++    got = 0
++    while got < len(view):
++        try:
++            n = _kai_os.preadv(fd, [view[got:]], off + got, _KAI_NOWAIT)
++        except BlockingIOError:
++            return False
++        except OSError as exc:
++            if exc.errno in (_kai_errno.EAGAIN, _kai_errno.EWOULDBLOCK):
++                return False
++            if exc.errno in _KAI_NOWAIT_UNSUPPORTED:
++                raise _KaiNowaitUnsupported from exc
++            raise
++        if n == 0:
++            return False
++        got += n
++    return True
++
++
++def _kai_pread_pending(pending: list, lo: int, hi: int) -> None:
++    for i in range(lo, hi):
++        fd, off, view = pending[i]
++        got = 0
++        while got < len(view):
++            n = _kai_os.preadv(fd, [view[got:]], off + got)
++            if n <= 0:
++                raise OSError("engram disk table: short read")
++            got += n
++
++
++def _kai_nowait_read(jobs: list) -> bool:
++    """Read page-cache hits synchronously; return False if NOWAIT is unsupported."""
++    if _KAI_NOWAIT is None:
++        return False
++    pending = [
++        (fd, base + rel[i] * row_bytes,
++         buf[i * row_bytes : (i + 1) * row_bytes])
++        for fd, base, rel, row_bytes, buf in jobs
++        for i in range(len(rel))
++    ]
++    try:
++        for _ in range(2):
++            pending = [
++                row for row in pending if not _kai_pread_nowait(*row)
++            ]
++            if not pending:
++                return True
++    except _KaiNowaitUnsupported:
++        return False
++
++    chunk = max(1, min(_KAI_CHUNK, -(-len(pending) // _KAI_THREADS)))
++    pool = _kai_pool()
++    futs = [
++        pool.submit(_kai_pread_pending, pending, lo, min(lo + chunk, len(pending)))
++        for lo in range(0, len(pending), chunk)
++    ]
++    for fut in futs:
++        fut.result()
++    return True
++
++
+ def _kai_parallel_read(jobs: list) -> None:
+     """jobs: [(fd, base, rel_list, row_bytes, memoryview)]. Every row of every job
+     is in flight at once: a task carries ceil(total / threads) rows (1 row at
+@@ -665,6 +743,8 @@ def _kai_parallel_read(jobs: list) -> None:
+     total = sum(len(job[2]) for job in jobs)
+     if total == 0:
+         return
++    if _kai_nowait_read(jobs):
++        return
+     if total == 1:
+         for fd, base, rel, row_bytes, buf in jobs:
+             _kai_pread_rows(fd, base, rel, 0, len(rel), row_bytes, buf)
