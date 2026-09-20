@@ -49,8 +49,8 @@ diff --git a/patch/engram.py b/patch/engram.py
 +            if exc.errno in _KAI_NOWAIT_UNSUPPORTED:
 +                raise _KaiNowaitUnsupported from exc
 +            raise
-+        if n <= 0:
-+            raise OSError("engram disk table: short read")
++        if n == 0:
++            return False
 +        got += n
 +    return True
 +

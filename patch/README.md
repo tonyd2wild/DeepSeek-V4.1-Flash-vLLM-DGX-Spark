@@ -22,7 +22,7 @@ files byte for byte. The subfolders hold each fix's diff, offline test and notes
 |---|---|
 | `engram-offset-fix/` | rank-offset fix, diff, harness (ranks 1-3 read rank 0's rows before) |
 | `engram-parallel-reads/` | first parallel-read patch (superseded by `cudagraph-prestage/`) and its latency harness |
-| `engram-nowait/` | optional `RWF_NOWAIT` page-cache fast path for the blocking `preadv` fallback, exact diff and production evidence |
+| `engram-nowait/` | optional `RWF_NOWAIT` page-cache fast path for the blocking `preadv` fallback, recipe-snapshot diff, forced-path harness, and production evidence |
 | `cudagraph-prestage/` | prestage diffs for engram.py and model_state.py, `test_engram_prestage.py` (33 checks, bit-exact) |
 | `sm12x-pages/` | Kai's SM12x page-size diffs, the indexer 64-state diff, `test_indexer64.py` |
 | `sm12x-indexer-topk/` | top-k diff, GB10 correctness and timing tests, `RESULTS.md` |
