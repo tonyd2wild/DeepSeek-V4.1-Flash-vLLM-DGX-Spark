@@ -97,6 +97,7 @@ index 207cddd4858712a05a49de8771682bd78df9a04d..51c26513b2d88bffd1c2701b02814630
 +        fut.result()
 +    return True
 +
++
  def _kai_parallel_read(jobs: list) -> None:
      """jobs: [(fd, base, rel_list, row_bytes, memoryview)]. Every row of every job
      is in flight at once: a task carries ceil(total / threads) rows (1 row at
