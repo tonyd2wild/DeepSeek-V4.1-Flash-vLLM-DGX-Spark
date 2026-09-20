@@ -1,5 +1,4 @@
 diff --git a/patch/engram.py b/patch/engram.py
-index 207cddd4858712a05a49de8771682bd78df9a04d..51c26513b2d88bffd1c2701b02814630df8ba117 100644
 --- a/patch/engram.py
 +++ b/patch/engram.py
 @@ -41,6 +41,7 @@ import torch
@@ -32,7 +31,7 @@ index 207cddd4858712a05a49de8771682bd78df9a04d..51c26513b2d88bffd1c2701b02814630
  
  
  def _kai_pool() -> _KaiPool:
-@@ -657,6 +673,67 @@ def _kai_pread_rows(
+@@ -657,6 +673,68 @@ def _kai_pread_rows(
              got += n
  
  
@@ -101,7 +100,7 @@ index 207cddd4858712a05a49de8771682bd78df9a04d..51c26513b2d88bffd1c2701b02814630
  def _kai_parallel_read(jobs: list) -> None:
      """jobs: [(fd, base, rel_list, row_bytes, memoryview)]. Every row of every job
      is in flight at once: a task carries ceil(total / threads) rows (1 row at
-@@ -665,6 +742,8 @@ def _kai_parallel_read(jobs: list) -> None:
+@@ -665,6 +743,8 @@ def _kai_parallel_read(jobs: list) -> None:
      total = sum(len(job[2]) for job in jobs)
      if total == 0:
          return
